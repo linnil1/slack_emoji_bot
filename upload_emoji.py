@@ -2,7 +2,7 @@ import os
 import requests
 from bs4 import BeautifulSoup
 
-class emoji:
+class Emoji:
     def __init__(self,team_name,email,password):
         self.baseurl = "https://{}.slack.com".format(team_name)
         self.url = self.baseurl+"/customize/emoji"
