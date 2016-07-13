@@ -9,12 +9,12 @@ class Emoji:
         self.se = requests.Session()
 
         #login
-        r = self.se.get(self.url, allow_redirects=True)
-        r.raise_for_status()
+        self.rep = self.se.get(self.url, allow_redirects=True)
+        self.rep.raise_for_status()
 
         #login
-        soup = BeautifulSoup(r.text)
-        print(soup.find("h1"))
+        soup = BeautifulSoup(self.rep.text)
+        print(soup.find("h1").text.strip())
         crumb = soup.find("input", attrs={"name": "crumb"})["value"]
         data = {
             'crumb': crumb,
@@ -24,23 +24,24 @@ class Emoji:
             'remember': "on",
             'signin': 1
         }
-        r = self.se.post(self.baseurl,data=data, allow_redirects=True)
-        r.raise_for_status()
-        print(BeautifulSoup(r.text).find_all("h1"))
+        self.rep = self.se.post(self.baseurl,data=data, allow_redirects=True)
+        self.rep.raise_for_status()
 
-    def imageUpload(self,filename,emoji_name):
-        r = self.se.get(self.url, allow_redirects=True)
-        r.raise_for_status()
-        soup = BeautifulSoup(r.text)
+        soup = BeautifulSoup(self.rep.text).find_all("h1")
+        print("team_name = "+soup[0].text.strip())
+        print(soup[1].text.strip())
+
+    def imageUpload(self,filename):
+        soup = BeautifulSoup(self.rep.text)
         crumb = soup.find("input", attrs={"name": "crumb"})["value"]
 
         data = {
             'add': 1,
             'crumb': crumb,
-            'name': emoji_name,
+            'name': filename,
             'mode': 'data',
         }
-        files = {'img': open(filename, 'rb')}
-        r = self.se.post(self.url, data=data, files=files, allow_redirects=True)
-        r.raise_for_status()
-        print(BeautifulSoup(r.text).find_all("p","alert"))
+        files = {'img': open("word_data/"+filename, 'rb')}
+        self.rep = self.se.post(self.url, data=data, files=files, allow_redirects=True)
+        self.rep.raise_for_status()
+        print(BeautifulSoup(self.rep.text).find("p","alert").text.strip())
