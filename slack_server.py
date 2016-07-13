@@ -26,7 +26,7 @@ class Slackbot_server(BaseHTTPRequestHandler):
         body = self.rfile.read(body_len).decode("utf8")
         body = urllib.parse.unquote(body)
         print(body)
-        data = re.search(r"(?<=text=)\w+",body).group()
+        data = re.search(r"(?<=text=old\+)\w+",body).group().strip()
         channel = re.search(r"(?<=channel_id=)\w+",body).group()
         print(data)
         
@@ -38,4 +38,4 @@ def run(port):
     print("start")
     httpd.serve_forever()
 
-run(6111)
+run(6112)

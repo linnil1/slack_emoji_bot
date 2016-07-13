@@ -6,10 +6,10 @@ from upload_emoji import Emoji
 import os
 import urllib.request
 import urllib.parse
+import requests
 import json
 
 privacy = json.loads(open("privacy.json").read())
-slack = SlackClient(privacy['token'])
 emoji = Emoji(privacy['team_name'],privacy['email'],privacy['password'])
 
 def emojiDownload(qstr):
@@ -43,5 +43,12 @@ def emoji_message(qstr,channel):
         else:
             message += word
 
-    print(slack.api_call("chat.postMessage",channel=channel,text=message,username="小篆transformer",icon_emoji=":_e7_af_86:"))
+    url = privacy['webhook']
+    payload = {
+        "channel": channel,
+        "username": "小篆transformer",
+        "text": message, 
+        "icon_emoji": ":_e7_af_86:"}
+    se = requests.Session()
+    print(se.post(url,json=payload).text)
 
