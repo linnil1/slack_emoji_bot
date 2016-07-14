@@ -1,8 +1,9 @@
 from http.server import BaseHTTPRequestHandler, HTTPServer
-import emoji_message
+from upload_emoji import Emoji
 import urllib.parse
 import re
 
+emoji = Emoji()
 
 class Slackbot_server(BaseHTTPRequestHandler):
     def _set_headers(self):
@@ -26,12 +27,25 @@ class Slackbot_server(BaseHTTPRequestHandler):
         body = self.rfile.read(body_len).decode("utf8")
         body = urllib.parse.unquote(body)
         print(body)
-        data = re.search(r"(?<=text=old\+)\w+",body).group().strip()
+
+        command = re.search(r"(?<=text=)\w+",body).group().strip()
         channel = re.search(r"(?<=channel_id=)\w+",body).group()
-        print(data)
+
+        print(command)
+        if command == "old":
+            data = re.search(r"(?<=text=old\+)\w+",body).group().strip()
+            emoji.imageUpDown(data,channel)
+            print(" -> "+data)
+
+        elif command == "askold":
+            data = re.search(r"(?<=text=askold\+)\w+",body).group().strip()
+            if len(data)==6:
+                udata = "%{}%{}%{}".format(data[0:2],data[2:4],data[4:6])
+                udata = urllib.parse.unquote(udata)
+                emoji.slackMessage(udata,channel)
+            print(" -> "+data)
         
-        self.wfile.write(data.encode("utf-8"))
-        emoji_message.emoji_message(data,channel)
+        #self.wfile.write(data.encode("utf-8"))
 
 def run(port):
     httpd = HTTPServer(('', port), Slackbot_server)
