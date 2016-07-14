@@ -10,6 +10,7 @@ import json
 import os
 import os.path
 from bs4 import BeautifulSoup
+from multiprocessing import Process,Queue
 
 class Emoji:
     def __init__(self):
@@ -48,7 +49,10 @@ class Emoji:
         print(soup[1].text.strip())
 
     def imageUpload(self,filename):
-        soup = BeautifulSoup(self.rep.text,"lxml")
+        tab = requests.Session()
+        tab.cookies = self.se.cookies
+        rep = tab.post(self.url)
+        soup = BeautifulSoup(rep.text,"lxml")
         crumb = soup.find("input", attrs={"name": "crumb"})["value"]
 
         data = {
@@ -58,9 +62,9 @@ class Emoji:
             'mode': 'data',
         }
         files = {'img': open("word_data/"+filename, 'rb')}
-        self.rep = self.se.post(self.url, data=data, files=files, allow_redirects=True)
-        self.rep.raise_for_status()
-        print(BeautifulSoup(self.rep.text,"lxml").find("p","alert").text.strip())
+        rep = tab.post(self.url, data=data, files=files, allow_redirects=True)
+        rep.raise_for_status()
+        print(BeautifulSoup(rep.text,"lxml").find("p","alert").text.strip())
 
     def imageDownload(self,word):
         #download
@@ -94,17 +98,41 @@ class Emoji:
         else:
             return  ":"+webword+":"
 
+    def imageProcess(self,word,queue):
+        webword = urllib.parse.quote(word).lower().replace("%","_")
+        file_noexist = not os.path.isfile("word_data/"+webword)
+        print("file_noexist = ",file_noexist)
+        if file_noexist:
+            self.imageDownload(word)
+        message = self.messageWord(word)
+        if file_noexist and len(message)!=1 :
+            self.imageUpload(webword)
+        queue.put((word,message))
+
     def imageUpDown(self,qstr,channel):
+        #pre str
+        uniquestr = []
+        for word in qstr:
+            if word not in uniquestr:
+                uniquestr.append(word)
+        
+        #mutiprocess
+        queue = Queue()
+        process = []
+        for word in uniquestr:
+            process.append(Process(target=self.imageProcess,args=(word,queue)))
+        for i in process:
+            i.start()
+        for i in process:
+            i.join()
+
+        #dictionary map
+        worddict= {}
+        for i in range(queue.qsize()):
+            key,val = queue.get()
+            worddict[key] = val
         emoji_str = ""
         for word in qstr:
-            file_noexist = not os.path.isfile("word_data/"+urllib.parse.quote(word).lower().replace("%","_"))
-            print("file_noexist = ",file_noexist)
-            if file_noexist:
-                self.imageDownload(word)
-            message = self.messageWord(word)
-            if file_noexist and message[0]==':' and message[-1]==':':
-                self.imageUpload(message[1:-1])
-            emoji_str += message
-
+            emoji_str += worddict[word]
         self.slackMessage(emoji_str,channel)
 

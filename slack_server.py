@@ -33,7 +33,7 @@ class Slackbot_server(BaseHTTPRequestHandler):
 
         print(command)
         if command == "old":
-            data = re.search(r"(?<=text=old\+)\w+",body).group().strip()
+            data = re.search(r"(?<=text=old\+).*?(?=&)",body).group().strip()
             emoji.imageUpDown(data,channel)
             print(" -> "+data)
 
