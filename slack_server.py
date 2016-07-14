@@ -24,16 +24,15 @@ class Slackbot_server(BaseHTTPRequestHandler):
         self._set_headers()
         #print(self.headers)
         body_len = int(self.headers['content-length'])
+
         body = self.rfile.read(body_len).decode("utf8")
-        body = urllib.parse.unquote(body)
         print(body)
-
-        command = re.search(r"(?<=text=)\w+",body).group().strip()
         channel = re.search(r"(?<=channel_id=)\w+",body).group()
-
-        print(command)
+        command = re.search(r"(?<=text=)\w+",body).group().strip()
+        
         if command == "old":
             data = re.search(r"(?<=text=old\+).*?(?=&)",body).group().strip()
+            data = urllib.parse.unquote(data.replace("+"," "))
             emoji.imageUpDown(data,channel)
             print(" -> "+data)
 

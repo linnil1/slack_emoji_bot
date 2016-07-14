@@ -9,6 +9,7 @@ import requests
 import json
 import os
 import os.path
+import string
 from bs4 import BeautifulSoup
 from multiprocessing import Process,Queue
 
@@ -30,7 +31,7 @@ class Emoji:
         
         #login
         soup = BeautifulSoup(self.rep.text,"lxml")
-        print(soup.find("h1").text.strip())
+        print(word + soup.find("h1").text.strip())
         crumb = soup.find("input", attrs={"name": "crumb"})["value"]
         data = {
             'crumb': crumb,
@@ -64,7 +65,7 @@ class Emoji:
         files = {'img': open("word_data/"+filename, 'rb')}
         rep = tab.post(self.url, data=data, files=files, allow_redirects=True)
         rep.raise_for_status()
-        print(BeautifulSoup(rep.text,"lxml").find("p","alert").text.strip())
+        print(filename + BeautifulSoup(rep.text,"lxml").find("p","alert").text.strip())
 
     def imageDownload(self,word):
         #download
@@ -91,7 +92,7 @@ class Emoji:
     def messageWord(self,word):
         webword = urllib.parse.quote(word).lower().replace("%","_")
         wordlen = len(open("word_data/"+webword,"rb").read())
-        print("pnglen = "+str(wordlen))
+        print(word + "pnglen = "+str(wordlen))
         if wordlen<140:
             print(word+" not found")
             return word
@@ -99,9 +100,12 @@ class Emoji:
             return  ":"+webword+":"
 
     def imageProcess(self,word,queue):
+        if word in string.printable:
+            queue.put((word,word))
+            return #for secure problem
         webword = urllib.parse.quote(word).lower().replace("%","_")
         file_noexist = not os.path.isfile("word_data/"+webword)
-        print("file_noexist = ",file_noexist)
+        print(word + "file_noexist = ",file_noexist)
         if file_noexist:
             self.imageDownload(word)
         message = self.messageWord(word)
