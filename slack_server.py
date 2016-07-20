@@ -1,9 +1,53 @@
 from http.server import BaseHTTPRequestHandler, HTTPServer
 from upload_emoji import Emoji
+from slackclient import SlackClient
 import urllib.parse
+import json
 import re
 
-emoji = Emoji()
+class ntuosc:
+    def __init__(self):
+        #from privacy
+        privacy = json.loads(open("privacy.json").read())
+        self.emoji = Emoji(privacy['team_name'],privacy['email'],privacy['password'])
+        self.slack= SlackClient(privacy['token'])
+
+    def bodyDict(self,body):
+        self.dict = {}
+        for data    in body.split("&"):
+            dictdata = data.split("=") 
+            self.dict[dictdata[0]] = dictdata[1]
+        self.dict['text'] = urllib.parse.unquote(self.dict['text'].replace("+"," ")).strip()
+
+    def commandSelect(self):
+        payload = {
+            "channel": self.dict['channel_id'],
+            "text": "Error", 
+            "username": "stranger",
+            "icon_emoji": ":strange:"}
+
+        command = re.search(r"\w+",self.dict['text']).group().strip()
+        if command == 'old':
+            payload["username"  ] = "小篆transformer"
+            payload["icon_emoji"] = ":_e7_af_86:"
+            data = re.search(r"(?<=old ).*",self.dict['text']).group().strip()
+            print(data)
+            payload["text"      ] = self.emoji.imageUpDown(data)
+            print("ch = "+payload["channel"])
+            print(self.slack.api_call("chat.postMessage",**payload))
+
+        elif command == 'askold':
+            payload["channel"]
+            payload["username"  ] = "小篆transformer"
+            payload["icon_emoji"] = ":_e7_af_86:"
+            data = re.search(r"(?<=askold ).*",body).group().strip()
+            if len(data)==6:
+                udata = "%{}%{}%{}".format(data[0:2],data[2:4],data[4:6])
+                data = urllib.parse.unquote(udata)
+                payload["text"] = self.emoji.imageUpDown(data+" = "+udata)
+                print(self.slack.api_call("chat.postMessage",**payload))
+
+ntu =  ntuosc()
 
 class Slackbot_server(BaseHTTPRequestHandler):
     def _set_headers(self):
@@ -24,27 +68,13 @@ class Slackbot_server(BaseHTTPRequestHandler):
         self._set_headers()
         #print(self.headers)
         body_len = int(self.headers['content-length'])
-
         body = self.rfile.read(body_len).decode("utf8")
+        
         print(body)
-        channel = re.search(r"(?<=channel_id=)\w+",body).group()
-        command = re.search(r"(?<=text=)\w+",body).group().strip()
-        
-        if command == "old":
-            data = re.search(r"(?<=text=old\+).*?(?=&)",body).group().strip()
-            data = urllib.parse.unquote(data.replace("+"," "))
-            emoji.imageUpDown(data,channel)
-            print(" -> "+data)
+        ntu.bodyDict(body)
+        ntu.commandSelect()
 
-        elif command == "askold":
-            data = re.search(r"(?<=text=askold\+)\w+",body).group().strip()
-            if len(data)==6:
-                udata = "%{}%{}%{}".format(data[0:2],data[2:4],data[4:6])
-                udata = urllib.parse.unquote(udata)
-                emoji.slackMessage(udata,channel)
-            print(" -> "+data)
-        
-        #self.wfile.write(data.encode("utf-8"))
+
 
 def run(port):
     httpd = HTTPServer(('', port), Slackbot_server)

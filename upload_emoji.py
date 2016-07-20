@@ -1,12 +1,11 @@
 #!/usr/bin/python
 # -*- coding: utf-8  -*-
 
-from slackclient import SlackClient
+# TODO : separate upload emoji and old_func
 import os
 import urllib.request
 import urllib.parse
 import requests
-import json
 import os
 import os.path
 import string
@@ -14,14 +13,7 @@ from bs4 import BeautifulSoup
 from multiprocessing import Process,Queue
 
 class Emoji:
-    def __init__(self):
-        #from privacy
-        privacy = json.loads(open("privacy.json").read())
-        team_name = privacy['team_name']
-        email     = privacy['email']
-        password  = privacy['password']
-        self.webhookurl = privacy['webhook']
-
+    def __init__(self,team_name,email,password):
         #prelogin
         self.baseurl = "https://{}.slack.com".format(team_name)
         self.url = self.baseurl+"/customize/emoji"
@@ -31,7 +23,7 @@ class Emoji:
         
         #login
         soup = BeautifulSoup(self.rep.text,"lxml")
-        print(word + soup.find("h1").text.strip())
+        print(soup.find("h1").text.strip())
         crumb = soup.find("input", attrs={"name": "crumb"})["value"]
         data = {
             'crumb': crumb,
@@ -80,14 +72,6 @@ class Emoji:
         with open("word_data/"+webword,"wb") as f:
             f.write(rep)
 
-    def slackMessage(self,data,channel):
-        payload = {
-            "channel": channel,
-            "username": "小篆transformer",
-            "text": data, 
-            "icon_emoji": ":_e7_af_86:"}
-        se = requests.Session()
-        print(se.post(self.webhookurl,json=payload).text)
 
     def messageWord(self,word):
         webword = urllib.parse.quote(word).lower().replace("%","_")
@@ -113,7 +97,7 @@ class Emoji:
             self.imageUpload(webword)
         queue.put((word,message))
 
-    def imageUpDown(self,qstr,channel):
+    def imageUpDown(self,qstr):
         #pre str
         uniquestr = []
         for word in qstr:
@@ -138,5 +122,5 @@ class Emoji:
         emoji_str = ""
         for word in qstr:
             emoji_str += worddict[word]
-        self.slackMessage(emoji_str,channel)
+        return emoji_str
 
