@@ -20,6 +20,7 @@ class ntuosc:
         self.dict['text'] = urllib.parse.unquote(self.dict['text'].replace("+"," ")).strip()
 
     def commandSelect(self):
+        print(self.dict['text'])
         payload = {
             "channel": self.dict['channel_id'],
             "text": "Error", 
@@ -30,21 +31,22 @@ class ntuosc:
         if command == 'old':
             payload["username"  ] = "小篆transformer"
             payload["icon_emoji"] = ":_e7_af_86:"
+            if "'" in self.dict['text']:
+                payload["text"  ] = self.emoji.imageUpDown(u"「請勿輸入單引號，判定為攻擊！」")
+                self.slack.api_call("chat.postMessage",**payload)
+                
             data = re.search(r"(?<=old ).*",self.dict['text']).group().strip()
-            print(data)
             payload["text"      ] = self.emoji.imageUpDown(data)
-            print("ch = "+payload["channel"])
             print(self.slack.api_call("chat.postMessage",**payload))
 
         elif command == 'askold':
-            payload["channel"]
             payload["username"  ] = "小篆transformer"
             payload["icon_emoji"] = ":_e7_af_86:"
-            data = re.search(r"(?<=askold ).*",body).group().strip()
+            data = re.search(r"(?<=askold ).*",self.dict['text']).group().strip()
             if len(data)==6:
                 udata = "%{}%{}%{}".format(data[0:2],data[2:4],data[4:6])
                 data = urllib.parse.unquote(udata)
-                payload["text"] = self.emoji.imageUpDown(data+" = "+udata)
+                payload["text"] = self.emoji.imageUpDown(data)+" = "+udata
                 print(self.slack.api_call("chat.postMessage",**payload))
 
 ntu =  ntuosc()
