@@ -1,53 +1,30 @@
 from http.server import BaseHTTPRequestHandler, HTTPServer
-from upload_emoji import Emoji
 from slackclient import SlackClient
+from CustomizeSlack import Customize
+from OLD_command import OLD_command
 import urllib.parse
 import json
-import re
 
 class ntuosc:
     def __init__(self):
         #from privacy
         privacy = json.loads(open("privacy.json").read())
-        self.emoji = Emoji(privacy['team_name'],privacy['email'],privacy['password'])
-        self.slack= SlackClient(privacy['token'])
+        self.custom= Customize(privacy)
+        self.slack = SlackClient(privacy['token'])
+        self.old   = OLD_command(self.slack,self.custom)
 
-    def bodyDict(self,body):
-        self.dict = {}
+    def commandSelect(self,body):
+        #body to dict
+        datadict = {}
         for data    in body.split("&"):
-            dictdata = data.split("=") 
-            self.dict[dictdata[0]] = dictdata[1]
-        self.dict['text'] = urllib.parse.unquote(self.dict['text'].replace("+"," ")).strip()
+            datatwo = data.split("=") 
+            datadict[datatwo[0]] = datatwo[1]
+        datadict['text'] = urllib.parse.unquote(datadict['text'].replace("+"," ")).strip()
+        print(datadict['text'])
 
-    def commandSelect(self):
-        print(self.dict['text'])
-        payload = {
-            "channel": self.dict['channel_id'],
-            "text": "Error", 
-            "username": "stranger",
-            "icon_emoji": ":strange:"}
-
-        command = re.search(r"\w+",self.dict['text']).group().strip()
-        if command == 'old':
-            payload["username"  ] = "小篆transformer"
-            payload["icon_emoji"] = ":_e7_af_86:"
-            if "'" in self.dict['text']:
-                payload["text"  ] = self.emoji.imageUpDown(u"「請勿輸入單引號，判定為攻擊！」")
-                self.slack.api_call("chat.postMessage",**payload)
-                
-            data = re.search(r"(?<=old ).*",self.dict['text']).group().strip()
-            payload["text"      ] = self.emoji.imageUpDown(data)
-            print(self.slack.api_call("chat.postMessage",**payload))
-
-        elif command == 'askold':
-            payload["username"  ] = "小篆transformer"
-            payload["icon_emoji"] = ":_e7_af_86:"
-            data = re.search(r"(?<=askold ).*",self.dict['text']).group().strip()
-            if len(data)==6:
-                udata = "%{}%{}%{}".format(data[0:2],data[2:4],data[4:6])
-                data = urllib.parse.unquote(udata)
-                payload["text"] = self.emoji.imageUpDown(data)+" = "+udata
-                print(self.slack.api_call("chat.postMessage",**payload))
+        #select
+        if datadict['text'].startswith(self.old.keyword):
+            self.old.main(datadict)
 
 ntu =  ntuosc()
 
@@ -73,10 +50,7 @@ class Slackbot_server(BaseHTTPRequestHandler):
         body = self.rfile.read(body_len).decode("utf8")
         
         print(body)
-        ntu.bodyDict(body)
-        ntu.commandSelect()
-
-
+        ntu.commandSelect(body)
 
 def run(port):
     httpd = HTTPServer(('', port), Slackbot_server)

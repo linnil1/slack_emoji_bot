@@ -23,7 +23,6 @@ class Emoji(BaseFunc):
     def __init__(self,baseurl,cookies):
         self.url  = baseurl + "/customize/emoji"
         self.cookies = cookies
-        print(self.cookies)
 
     def imageUpload(self,filepath,filename):
         tab,rep = self.sessionStart()
@@ -33,7 +32,7 @@ class Emoji(BaseFunc):
             'name': filename,
             'mode': 'data',
         }
-        files = {'img': open(filepath, 'rb')}
+        files = {'img': open(filepath+filename, 'rb')}
         rep = tab.post(self.url, data=data, files=files, allow_redirects=True)
         rep.raise_for_status()
         print(filename + BeautifulSoup(rep.text,"lxml").find("p","alert").text.strip())
@@ -65,11 +64,10 @@ class Customize(BaseFunc):
         #stdout not essentional
         soup = BeautifulSoup(rep.text,"lxml").find_all("h1")
         print("team_name = "+soup[0].text.strip())
-        print(soup[1].text.strip())
 
         #function
         self.emoji = Emoji(self.baseurl,se.cookies)
 
 #a = Customize(json.loads(open("privacy.json").read()))
-#a.emoji.imageUpload("word_data/test","test")
+#a.emoji.imageUpload("word_data/","test")
 
