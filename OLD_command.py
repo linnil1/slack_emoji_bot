@@ -47,7 +47,7 @@ class OLD_command:
             self.imageDownload(word)
         message = self.messageWord(word)
         if file_noexist and len(message)!=1 :
-            self.custom.emoji.imageUpload(self.dir,filename)
+            self.custom.emoji.upload(self.dir,filename)
         queue.put((word,message))
 
     def imageUpDown(self,qstr):
