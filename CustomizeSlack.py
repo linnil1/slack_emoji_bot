@@ -4,13 +4,13 @@
 import json
 import requests
 from bs4 import BeautifulSoup
+from slackclient import SlackClient
 
 class BaseFunc:
     def crumbGet(self,rep,spec=None):
         soup = BeautifulSoup(rep.text,"lxml")
         if spec:
             soup = soup.find(**spec)
-        #print(soup.find("h1").text.strip())
         return soup.find("input", attrs={"name": "crumb"})["value"]
 
     def sessionStart(self):
@@ -40,7 +40,7 @@ class Emoji(BaseFunc):
         files = {'img': open(filepath+filename, 'rb')}
         rep = tab.post(self.url, data=data, files=files, allow_redirects=True)
         rep.raise_for_status()
-        print(filename +">>" + self.getalert(rep))
+        return self.getalert(rep)
 
     def list(self):
         tab,rep = self.sessionStart()
@@ -68,7 +68,7 @@ class Emoji(BaseFunc):
             }
         rep = tab.post(self.url,data=data, allow_redirects=True)
         rep.raise_for_status()
-        print(name +">>" + self.getalert(rep))
+        return self.getalert(rep)
 
     def setalias(self,name,newname):
         tab,rep = self.sessionStart()
@@ -81,14 +81,41 @@ class Emoji(BaseFunc):
         }
         rep = tab.post(self.url, data=data, allow_redirects=True)
         rep.raise_for_status()
-        print(name +" -> "+newname+">>"+ self.getalert(rep))
+        return self.getalert(rep)
+
+class Slackbot:
+    def __init__(self,token):
+        self.slack = SlackClient(token)
+    def list(self):
+        return self.slack.api_call("slackbot.responses.list")
+    def base_add(self,triggers,responses):
+        return self.slack.api_call("slackbot.responses.add",triggers=triggers,responses=responses)
+    def base_delete(self,delid):
+        return self.slack.api_call("slackbot.responses.delete",response=delid)
+    def base_edit(self,editid,triggers,responses):
+        return self.slack.api_call("slackbot.responses.edit",response=editid,triggers=triggers,responses=responses)
+
+    #use element as arg
+    def find(self,key,keyword='triggers'):
+        replist = self.list()['responses']
+        for rep in replist:
+            if key in rep[keyword]:
+                return rep
+        return None #not found
+
+    def update(self,element):
+        return self.base_edit(element['id'], ",".join(element['triggers' ]),
+                                            "\n".join(element['responses']))
+    def delete(self,element):
+        return self.base_delete(element['id'])
 
 class Customize(BaseFunc):
     def __init__(self,privacy):
         #get data from privacy
         team_name = privacy['team_name']
-        email     = privacy['email']   
-        password  = privacy['password']
+        email     = privacy['email'    ]   
+        password  = privacy['password' ]
+        testtoken = privacy['testtoken']
 
         #prelogin
         self.baseurl = "https://{}.slack.com".format(team_name)
@@ -113,6 +140,7 @@ class Customize(BaseFunc):
 
         #function
         self.emoji = Emoji(self.baseurl,se.cookies)
+        self.slackbot = Slackbot(testtoken)
 
 #a = Customize(json.loads(open("privacy.json").read()))
 
