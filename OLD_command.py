@@ -47,7 +47,7 @@ class OLD_command:
             self.imageDownload(word)
         message = self.messageWord(word)
         if file_noexist and len(message)!=1 :
-            self.custom.emoji.upload(self.dir,filename)
+            print(filename +">>"+ self.custom.emoji.upload(self.dir,filename))
         queue.put((word,message))
 
     def imageUpDown(self,qstr):
@@ -81,7 +81,6 @@ class OLD_command:
     def main(self,datadict):
         payload = {
             "channel": datadict['channel_id'],
-            "text": "Error", 
             "username": "小篆transformer",
             "icon_emoji": ":_e7_af_86:"}
         text = datadict['text']
@@ -103,3 +102,15 @@ class OLD_command:
                 data = urllib.parse.unquote(udata)
                 payload["text"] = self.imageUpDown(data)+" = "+data+" = "+udata
                 print(self.slack.api_call("chat.postMessage",**payload))
+        
+        elif text.startswith("oldreact "):
+            data = re.search(r"(?<=oldreact ).*",text).group().strip()
+            data = data.replace(":","") #remove unwanted data
+            emoji_str = self.imageUpDown(data)
+            emoji_str = re.findall(r":(\w+):",emoji_str)
+            target = self.slack.api_call("channels.history",channel=payload['channel'],count=2)
+            payload['timestamp'] = target['messages'][1]['ts']
+            for emojiname in emoji_str:
+                payload['name'] = emojiname 
+                print(emojiname +">>")
+                print(self.slack.api_call("reactions.add",**payload))

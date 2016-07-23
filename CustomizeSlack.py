@@ -108,6 +108,16 @@ class Slackbot:
                                             "\n".join(element['responses']))
     def delete(self,element):
         return self.base_delete(element['id'])
+    
+# the function is implement beacuse the server doesn't check same trigger word
+# this function is for easy use
+    def add(self,key,word): 
+        element = self.find(key)
+        if not element:
+            return self.base_add(key,word)
+        else:
+            element['responses'].append(word)
+            return self.upload(element)
 
 class Customize(BaseFunc):
     def __init__(self,privacy):
