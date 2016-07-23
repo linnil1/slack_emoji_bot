@@ -105,12 +105,44 @@ class OLD_command:
         
         elif text.startswith("oldreact "):
             data = re.search(r"(?<=oldreact ).*",text).group().strip()
-            data = data.replace(":","") #remove unwanted data
             emoji_str = self.imageUpDown(data)
-            emoji_str = re.findall(r":(\w+):",emoji_str)
-            target = self.slack.api_call("channels.history",channel=payload['channel'],count=2)
-            payload['timestamp'] = target['messages'][1]['ts']
-            for emojiname in emoji_str:
+            onlyemoji = re.findall(r":(\w+):",emoji_str)
+            target = self.slack.api_call("channels.history",
+                    channel=payload['channel'],
+                    count=1,
+                    latest=float(datadict['timestamp']),
+                    inclusive=0)
+            payload['timestamp'] = target['messages'][0]['ts']
+            for emojiname in onlyemoji:
                 payload['name'] = emojiname 
                 print(emojiname +">>")
                 print(self.slack.api_call("reactions.add",**payload))
+
+            if emoji_str.startswith("old "):#for recursive use
+                payload['username'] += "_recursive"
+                payload['text'] = re.search(r"(?<=old ).*",emoji_str).group().strip()
+                print(self.slack.api_call("chat.postMessage",**payload))
+
+        elif text.startswith("oldset "):
+            data = re.search(r"(?<=oldset).*",text).group().strip()
+            two  = re.findall(r"\w+",data)
+            if len(two) != 2:
+                payload['text'] =  "args error"
+                print(self.slack.api_call("chat.postMessage",**payload))
+                return 
+            if len(two[0])!=1 or two[0] in string.printable:
+                payload['text'] =  "not 小篆emoji"
+                print(self.slack.api_call("chat.postMessage",**payload))
+                return 
+            transdata = self.imageUpDown(two[0])
+            if len(transdata) == 1 :
+                payload['text'] =  "cannot transform to 小篆emoji"
+                print(self.slack.api_call("chat.postMessage",**payload))
+                return 
+
+            transdata = transdata[1:-1]  ## get rid of ::
+
+            payload['text'] = self.custom.emoji.setalias(transdata,two[1])
+            print(self.slack.api_call("chat.postMessage",**payload))
+
+
