@@ -7,6 +7,7 @@ import urllib.parse
 import os.path
 import string
 import re
+import json
 from multiprocessing import Process,Queue
 
 class OLD_command:
@@ -15,6 +16,7 @@ class OLD_command:
         self.keyword = "old"
         self.slack  = slack
         self.custom = custom
+        self.oldhelp= json.loads(open("OLDhelp.json").read())
 
     def filenameTo(self,word):
         return urllib.parse.quote(word).lower().replace("%","_")
@@ -144,5 +146,10 @@ class OLD_command:
 
             payload['text'] = self.custom.emoji.setalias(transdata,two[1])
             print(self.slack.api_call("chat.postMessage",**payload))
-
-
+        
+        elif text.startswith("oldhelp"):
+            payload['text'] = self.oldhelp['purpose']
+            self.slack.api_call("chat.postMessage",**payload)
+            
+            payload['text'] = "\n".join( [self.oldhelp[func] for func in self.oldhelp['allfunc']] )
+            self.slack.api_call("chat.postMessage",**payload)
