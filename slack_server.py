@@ -1,9 +1,12 @@
-from http.server import BaseHTTPRequestHandler, HTTPServer
 from slackclient import SlackClient
 from CustomizeSlack import Customize
 from OLD_command import OLD_command
-import urllib.parse
 import json
+
+import multiprocessing as mp
+import time
+import sys
+import queue
 
 class ntuosc:
     def __init__(self):
@@ -13,48 +16,43 @@ class ntuosc:
         self.slack = SlackClient(privacy['token'])
         self.old   = OLD_command(self.slack,self.custom)
 
-    def commandSelect(self,body):
-        #body to dict
-        datadict = {}
-        for data    in body.split("&"):
-            datatwo = data.split("=") 
-            datadict[datatwo[0]] = datatwo[1]
-        datadict['text'] = urllib.parse.unquote(datadict['text'].replace("+"," ")).strip()
-        print(datadict['text'])
+        self.pq = queue.PriorityQueue()
 
-        #select
-        if datadict['text'].startswith(self.old.keyword):
-            self.old.main(datadict)
+    def processTimeout(self):
+        while not self.pq.empty():
+            t,p = self.pq.get()
+            if  (not p.is_alive()) or time.time() - t > 30 : #too long
+                p.terminate()
+                p.join()
+            else:
+                self.pq.put((t,p))
+                break
+
+    def startRTM(self):
+        self.pq = queue.PriorityQueue()
+        if self.slack.rtm_connect():
+            print("Start")
+            while True:
+                self.processTimeout()
+                data = self.slack.rtm_read()
+                if data:
+                        print(data)
+                        try:
+                            p =  mp.Process(target=self.commandSelect,args=(data[0],))
+                            p.start()
+                            print(p.pid)
+                            self.pq.put( (time.time(),p) )
+                        except not KeyboardInterrupt:
+                            print(sys.exc_info())
+                else:
+                    time.sleep(1)
+
+
+    def commandSelect(self,data):
+        if data['type'] == 'message' and (
+        'subtype' not in data or data['subtype']=="bot_message"):
+            self.old.main(data)
+
 
 ntu =  ntuosc()
-
-class Slackbot_server(BaseHTTPRequestHandler):
-    def _set_headers(self):
-        self.send_response(200)
-        self.send_header('Content-type', 'text/plain')
-        self.end_headers()
-
-    def do_GET(self):
-        self._set_headers()
-        #self.wfile.write("<html><body><h1>hi!</h1></body></html>")
-        self.wfile.write("Get".encode("utf8"))
-
-    def do_HEAD(self):
-        self._set_headers()
-        
-    def do_POST(self):
-        # Doesn't do anything with posted data
-        self._set_headers()
-        #print(self.headers)
-        body_len = int(self.headers['content-length'])
-        body = self.rfile.read(body_len).decode("utf8")
-        
-        print(body)
-        ntu.commandSelect(body)
-
-def run(port):
-    httpd = HTTPServer(('', port), Slackbot_server)
-    print("start")
-    httpd.serve_forever()
-
-run(6112)
+ntu.startRTM()

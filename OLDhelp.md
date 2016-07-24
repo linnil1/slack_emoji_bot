@@ -9,6 +9,7 @@ Source : https://github.com/linnil1/slack_emoji_bot
 
 There are 5 operations : ["old","oldask","oldreact","oldset","oldhelp"]
 
+You can see detail of operation by oldhelp (func...)
 
 ## Operations
 * old 
@@ -79,11 +80,11 @@ There are 5 operations : ["old","oldask","oldreact","oldset","oldhelp"]
 
   `oldset 吃 eat`
 
-* oldhelp
+* oldhelp (func...)
 
   Usage: `oldhelp` **get help for the usage of this modle or the function**
 
+  for example: oldhelp old oldask
+
   If you want to see more clear statement see [OLDhelp.md]
   
-  For example:  `oldhelp`
-

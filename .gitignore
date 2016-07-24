@@ -2,3 +2,4 @@ _*
 *.swp
 privacy.json
 makefile
+test*

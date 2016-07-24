@@ -79,10 +79,18 @@ class OLD_command:
             emoji_str += worddict[word]
         return emoji_str
 
+    def historyTimestamp(self,datadict,count):
+            target = self.slack.api_call("channels.history",
+                    channel=datadict['channel'],
+                    count=count,
+                    latest=float(datadict['ts']),
+                    inclusive=1)
+            return float(target['messages'][count-1]['ts'])
+
 
     def main(self,datadict):
         payload = {
-            "channel": datadict['channel_id'],
+            "channel": datadict['channel'],
             "username": "小篆transformer",
             "icon_emoji": ":_e7_af_86:"}
         text = datadict['text']
@@ -109,15 +117,10 @@ class OLD_command:
             data = re.search(r"(?<=oldreact ).*",text).group().strip()
             emoji_str = self.imageUpDown(data)
             onlyemoji = re.findall(r":(\w+):",emoji_str)
-            target = self.slack.api_call("channels.history",
-                    channel=payload['channel'],
-                    count=1,
-                    latest=float(datadict['timestamp']),
-                    inclusive=0)
-            payload['timestamp'] = target['messages'][0]['ts']
+            
+            payload['timestamp'] = self.historyTimestamp(datadict,1)
             for emojiname in onlyemoji:
                 payload['name'] = emojiname 
-                print(emojiname +">>")
                 print(self.slack.api_call("reactions.add",**payload))
 
             if emoji_str.startswith("old "):#for recursive use
@@ -130,16 +133,16 @@ class OLD_command:
             two  = re.findall(r"\w+",data)
             if len(two) != 2:
                 payload['text'] =  "args error"
-                print(self.slack.api_call("chat.postMessage",**payload))
+                self.slack.api_call("chat.postMessage",**payload)
                 return 
             if len(two[0])!=1 or two[0] in string.printable:
                 payload['text'] =  "not 小篆emoji"
-                print(self.slack.api_call("chat.postMessage",**payload))
+                self.slack.api_call("chat.postMessage",**payload)
                 return 
             transdata = self.imageUpDown(two[0])
             if len(transdata) == 1 :
                 payload['text'] =  "cannot transform to 小篆emoji"
-                print(self.slack.api_call("chat.postMessage",**payload))
+                self.slack.api_call("chat.postMessage",**payload)
                 return 
 
             transdata = transdata[1:-1]  ## get rid of ::
@@ -148,8 +151,24 @@ class OLD_command:
             print(self.slack.api_call("chat.postMessage",**payload))
         
         elif text.startswith("oldhelp"):
-            payload['text'] = self.oldhelp['purpose']
-            self.slack.api_call("chat.postMessage",**payload)
+            allfunc =list(self.oldhelp['allfunc'])
+            needfunc=[]
+            userask = re.findall(r"\w+",text)
+
+            if len(userask)>1 and userask[0] == "oldhelp":
+                for user in userask[1:]:
+                    if user in allfunc:
+                        allfunc.remove(user)
+                        needfunc.append(user)
             
-            payload['text'] = "\n".join( [self.oldhelp[func] for func in self.oldhelp['allfunc']] )
-            self.slack.api_call("chat.postMessage",**payload)
+            if not needfunc : #empty
+                payload['text'] = self.oldhelp['purpose']
+                self.slack.api_call("chat.postMessage",**payload)
+                payload['text'] = "\n".join( [ self.oldhelp[func]['usage'] for func in allfunc] )
+                self.slack.api_call("chat.postMessage",**payload)
+
+            else:
+                for func in needfunc:
+                    payload['text'] = self.oldhelp[func]['usage']
+                    payload['text'] += "\n"+self.oldhelp[func]['help']
+                    self.slack.api_call("chat.postMessage",**payload)
