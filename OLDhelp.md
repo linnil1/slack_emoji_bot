@@ -38,7 +38,7 @@ You can see detail of operation by oldhelp (func...)
   
   And 6characters is the emoji name without "_"
   
-  In python, 6characters should be same as `urllib.parse.quote("字").replace(",","")`
+  In python, 6characters should be same as `urllib.parse.quote("字").replace("_","")`
   
   If we cannot find the word, it doesn't ouput anything
   

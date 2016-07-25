@@ -20,11 +20,13 @@ class ntuosc:
             while True:
                 data = self.slack.rtm_read()
                 if data:
-                        print(data)
-                        try:
-                            self.commandSelect(data[0])
-                        except not KeyboardInterrupt:
-                            print(sys.exc_info())
+                    if data[0]['type'] in ['user_typing','reconnect_url','pref_change']:
+                        continue
+                    print(data)
+                    try:
+                        self.commandSelect(data[0])
+                    except not KeyboardInterrupt:
+                        print(sys.exc_info())
                 else:
                     time.sleep(1)
 

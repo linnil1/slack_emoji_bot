@@ -8,6 +8,7 @@ import os.path
 import string
 import re
 import json
+import time
 from multiprocessing import Process,Queue
 
 class OLD_command:
@@ -81,13 +82,19 @@ class OLD_command:
             emoji_str += worddict[word]
         return emoji_str
 
-    def getTimestamp(self,payload,count): #count >=0
+    def getFileID(self,payload,ts,count): #count <=0
         count = -count+1 # because inclusive
-        target = self.slack.api_call("channels.history",
-                channel=payload['channel'],
-                count=count,
-                latest=float(payload['timestamp']),
-                inclusive=1)
+        target = {}
+        for i in range(4):
+            target =self.slack.api_call("channels.history",
+                    channel=payload['channel'],
+                    count=count,
+                    latest=ts,
+                    inclusive=1)
+            if float(target['messages'][0]['ts']) >= float(ts):
+                break;
+            time.sleep(0.25)
+        print("history :"+str(ts)+"-"+str(count))
 
         target = target['messages'][count-1]
 
@@ -96,13 +103,8 @@ class OLD_command:
         elif 'file' in target :
             payload['file'] = target['file']['id']         
         else:
-            payload['timestamp'] = float(target['ts'])
+            payload['timestamp'] = target['ts']
 
-    def reactmain(self,payload,emojiarr,floors=-1):
-        self.getTimestamp(payload,floors)
-        for emojiname in emojiarr:
-            payload['name'] = emojiname 
-            print(self.slack.api_call("reactions.add",**payload))
 
     def getFloor(self,data):
         """ It should be separated by space and the range is [-F,F] in hex """
@@ -110,51 +112,51 @@ class OLD_command:
         try:
             dig = int(strdig.group(),16)
         except(AttributeError,TypeError,ValueError): #nonetype or strange dig
-            return -1
+            raise ValueError
 
         print("Floor = " + str(dig))
         return dig
 
     def futurereactCount(self,datadict):
         print(self.futurereact)
-        if datadict['type'] == 'message': 
+        if datadict['type'] == 'message' :
             if 'subtype' not in datadict or datadict['subtype'] not in ["me_message","message_changed","message_deleted"]:
                 ch = datadict['channel']
                 if ch not in self.futurereact:
                     return 
-                payload = {
-                    "channel": ch,
-                    "timestamp": datadict['ts']}
                 if ch in self.futurereact:
                     mails = self.futurereact[ch]
                     for i in range(len(mails)):
                         mails[i]['count'] -= 1
                         if mails[i]['count'] == 0 :
                             print("future Mail")
-                            self.reactmain(payload,mails[i]['arr'],0)
-                    mails[:] = [ mail for mail in mails if mail['count'] != 0 ] 
+                            futuredict = dict(datadict)
+                            futuredict['text'] = mails[i]['text']
+                            futuredict['future'] = True
+                            self.main(futuredict)
+                    self.futurereact[ch] = [ mail for mail in mails if mail['count'] != 0 ] 
             elif datadict['subtype']=="message_deleted":
                 #if deleted will cause some count error
                 #but i don't want to deal it
                 return 
 
-    def futurereactAdd(self,payload,emojiarr,floors):
+    def futurereactAdd(self,payload,text,floors):
         ch = payload['channel'] 
         if ch not in self.futurereact:
             self.futurereact[ch] = []
+        self.futurereact[ch].append({"count":floors,"text":text})
         # http://stackoverflow.com/questions/9754034/can-i-create-a-shared-multiarray-or-lists-of-lists-object-in-python-for-multipro
         # I don't know why not use only append
-        self.futurereact[ch].append({"count":floors,"arr":emojiarr})
 
-        if emojiarr and floors>0:
-            payload['name'] = "_e8_a1_8c" # ok in chinese
-            print(self.slack.api_call("reactions.add",**payload))
+        payload['name'] = "_e8_a1_8c" # ok in chinese
+        print(self.slack.api_call("reactions.add",**payload))
            
     def main(self,datadict):
-        self.futurereactCount(datadict)
-        if not (datadict['type'] == 'message' and (
-        'subtype' not in datadict or datadict['subtype']=="bot_message")):
-            return 
+        if 'future' not in datadict:
+            self.futurereactCount(datadict)
+            if not (datadict['type'] == 'message' and (
+            'subtype' not in datadict or datadict['subtype']=="bot_message")):
+                return 
 
         payload = {
             "channel": datadict['channel'],
@@ -183,21 +185,30 @@ class OLD_command:
         elif text.startswith("oldreact "):
             data = re.search(r"(?<=oldreact ).*",text,re.DOTALL).group().strip()
             emoji_str = self.imageUpDown(data)
-            onlyemoji = re.findall(r":(\w+):",emoji_str)
             
-            floors = self.getFloor(emoji_str)
-            payload['timestamp'] = datadict['ts']
-            if floors > 0:
-                self.futurereactAdd(payload,onlyemoji,floors)
-                return 
+            floors = -1
+            futuretext = emoji_str
+            try: #if has floor option
+                floors = self.getFloor(emoji_str)
+                futuretext = re.search(r"( .*)",emoji_str,re.DOTALL).group().strip()
+                if floors > 0:
+                    self.getFileID(payload,datadict['ts'],0)
+                    self.futurereactAdd(payload,"oldreact 0 "+futuretext,floors)
+                    return 
+            except:
+                pass
 
-            self.reactmain(payload,onlyemoji,floors)
+            self.getFileID(payload,datadict['ts'],floors)
+            
+            onlyemoji = re.findall(r":(\w+):",futuretext)
+            for emojiname in onlyemoji:
+                payload['name'] = emojiname 
+                print(self.slack.api_call("reactions.add",**payload))
 
-            if emoji_str.startswith("old "):#for recursive use
-                del payload['timestamp']
-                del payload['file']
+            #for recursive use
+            if futuretext.startswith("old "):
                 payload['username'] += "_recursive"
-                payload['text'] = re.search(r"(?<=old ).*",emoji_str,re.DOTALL).group().strip()
+                payload['text'] = re.search(r"(?<=old ).*",futuretext,re.DOTALL).group().strip()
                 print(self.slack.api_call("chat.postMessage",**payload))
 
 
