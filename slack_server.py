@@ -5,44 +5,24 @@ import json
 
 import multiprocessing as mp
 import time
-import sys
-import queue
 
 class ntuosc:
     def __init__(self):
-        self.pq = queue.PriorityQueue()
-        self.manager = mp.Manager()
-        
         #from privacy
         privacy = json.loads(open("privacy.json").read())
         self.custom= Customize(privacy)
         self.slack = SlackClient(privacy['token'])
-        self.old   = OLD_command(self.slack,self.custom,self.manager)
-
-
-    def processTimeout(self):
-        while not self.pq.empty():
-            t,p = self.pq.get()
-            if  (not p.is_alive()) or time.time() - t > 30 : #too long
-                p.terminate()
-                p.join()
-            else:
-                self.pq.put((t,p))
-                break
+        self.old   = OLD_command(self.slack,self.custom)
 
     def startRTM(self):
-        self.pq = queue.PriorityQueue()
         if self.slack.rtm_connect():
             print("Start")
             while True:
-                self.processTimeout()
                 data = self.slack.rtm_read()
                 if data:
                         print(data)
                         try:
-                            p =  mp.Process(target=self.commandSelect,args=(data[0],))
-                            p.start()
-                            self.pq.put( (time.time(),p) )
+                            self.commandSelect(data[0])
                         except not KeyboardInterrupt:
                             print(sys.exc_info())
                 else:

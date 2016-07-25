@@ -48,17 +48,29 @@ You can see detail of operation by oldhelp (func...)
 
 * oldreact
   
-  Usage: `oldreact [text]` **give the previous message reactions of 小篆emoji**
+  Usage: `oldreact (floor=-1) [text]` **give reactions of 小篆emoji to specific floor message**
 
   If we cannot find the same word of 小篆, it will be ignore
 
   The emoji can only be reacted once a message
 
+  If floor <0 , means previous message
+
+  floor = 0  means yourself
+
+  floor > 0 means to future messages , [floor] below yourself
+  
+  And the range of floor is [-F,F] . If this command is accped , the bot will react "行" which means OK in chinese 
+
   For example:
 
   `oldreact 表情OAO`
 
-  `oldreact :_e8_a1_a8::_e6_83_85:表情OAO`
+  `oldreact :_e8_a1_a8::_e6_83_85:好笑OAO`
+
+  `oldreact -1 樓上`
+  
+  `oldreact a 十樓`
 
   In advance, it was designed for recursive usage
 

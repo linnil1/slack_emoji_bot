@@ -11,13 +11,13 @@ import json
 from multiprocessing import Process,Queue
 
 class OLD_command:
-    def __init__(self,slack,custom,manager):
+    def __init__(self,slack,custom):
         self.dir = "word_data/"
         self.keyword = "old"
         self.slack  = slack
         self.custom = custom
         self.oldhelp= json.loads(open("OLDhelp.json").read())
-        self.futurereact = manager.dict()
+        self.futurereact = {}
         # {channel:[{count:,arr:[,]},{}]
 
     def filenameTo(self,word):
@@ -81,21 +81,25 @@ class OLD_command:
             emoji_str += worddict[word]
         return emoji_str
 
-    def getTimestamp(self,payload,count):
+    def getTimestamp(self,payload,count): #count >=0
         count = -count+1 # because inclusive
         target = self.slack.api_call("channels.history",
                 channel=payload['channel'],
                 count=count,
                 latest=float(payload['timestamp']),
                 inclusive=1)
+
         target = target['messages'][count-1]
-        fileid = ""
-        if 'file' in target :
-            fileid = target['file']['id']         
-        return float(target['ts']),fileid
+
+        if 'comment' in target :
+            payload['file_comment'] = target['comment']['id']         
+        elif 'file' in target :
+            payload['file'] = target['file']['id']         
+        else:
+            payload['timestamp'] = float(target['ts'])
 
     def reactmain(self,payload,emojiarr,floors=-1):
-        payload['timestamp'],payload['file'] =self.getTimestamp(payload,floors)
+        self.getTimestamp(payload,floors)
         for emojiname in emojiarr:
             payload['name'] = emojiname 
             print(self.slack.api_call("reactions.add",**payload))
@@ -108,12 +112,13 @@ class OLD_command:
         except(AttributeError,TypeError,ValueError): #nonetype or strange dig
             return -1
 
+        print("Floor = " + str(dig))
         return dig
 
     def futurereactCount(self,datadict):
         print(self.futurereact)
         if datadict['type'] == 'message': 
-            if 'subtype' not in datadict or datadict['subtype']=="bot_message":
+            if 'subtype' not in datadict or datadict['subtype'] not in ["me_message","message_changed","message_deleted"]:
                 ch = datadict['channel']
                 if ch not in self.futurereact:
                     return 
@@ -127,9 +132,7 @@ class OLD_command:
                         if mails[i]['count'] == 0 :
                             print("future Mail")
                             self.reactmain(payload,mails[i]['arr'],0)
-                    mails = [ mail for mail in mails if mail['count'] != 0 ] 
-                    self.futurereact[ch] = mails
-
+                    mails[:] = [ mail for mail in mails if mail['count'] != 0 ] 
             elif datadict['subtype']=="message_deleted":
                 #if deleted will cause some count error
                 #but i don't want to deal it
@@ -141,9 +144,7 @@ class OLD_command:
             self.futurereact[ch] = []
         # http://stackoverflow.com/questions/9754034/can-i-create-a-shared-multiarray-or-lists-of-lists-object-in-python-for-multipro
         # I don't know why not use only append
-        tmp = self.futurereact[ch]
-        tmp.append({"count":floors,"arr":emojiarr})
-        self.futurereact[ch] = tmp
+        self.futurereact[ch].append({"count":floors,"arr":emojiarr})
 
         if emojiarr and floors>0:
             payload['name'] = "_e8_a1_8c" # ok in chinese
