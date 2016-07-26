@@ -258,12 +258,12 @@ class OLD_command:
                     payload['text'] += "\n"+self.oldhelp[func]['help']
                     self.slack.api_call("chat.postMessage",**payload)
 
-        elif text.startswith("olddate"):
+        elif text.startswith("oldtime"):
             nowtime = ""
-            if text == "olddate":
+            if text == "oldtime":
                 nowtime = time.strftime("%Y/%m/%d %H:%M")
             else:
-                nowtime = re.search(r"(?<=olddate ).*",text,re.DOTALL).group().strip()
+                nowtime = re.search(r"(?<=oldtime ).*",text,re.DOTALL).group().strip()
 
             try:
                 nowstr = oldtime_util.timeTostr(nowtime)

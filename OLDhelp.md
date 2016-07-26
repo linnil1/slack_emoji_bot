@@ -7,7 +7,7 @@ Author : linnil1
 
 Source : https://github.com/linnil1/slack_emoji_bot
 
-There are 6 operations : ["old","oldask","oldreact","oldset","oldhelp","olddate"]
+There are 6 operations : ["old","oldask","oldreact","oldset","oldhelp","oldtime"]
 
 You can see detail of operation by oldhelp (func...)
 
@@ -100,9 +100,9 @@ You can see detail of operation by oldhelp (func...)
 
   If you want to see more clear statement see [OLDhelp.md]
   
-* olddate
+* oldtime
 
-  Usage: `olddate (time)` **show the date and time by 小篆emoji**
+  Usage: `oldtime (time)` **show the date and time by 小篆emoji**
 
   if time is not specific , it will output now time
 
@@ -114,6 +114,6 @@ You can see detail of operation by oldhelp (func...)
 
   For example:
 
-  `olddate`
+  `oldtime`
 
-  `olddate 2014/1/12 3:
+  `oldtime 2014/1/12 3:`
