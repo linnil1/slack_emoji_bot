@@ -2,6 +2,7 @@
 # -*- coding: utf-8  -*-
 
 from CustomizeSlack import Customize
+import oldtime_util 
 import urllib.request
 import urllib.parse
 import os.path
@@ -150,7 +151,7 @@ class OLD_command:
 
         payload['name'] = "_e8_a1_8c" # ok in chinese
         print(self.slack.api_call("reactions.add",**payload))
-           
+
     def main(self,datadict):
         if 'future' not in datadict:
             self.futurereactCount(datadict)
@@ -256,3 +257,18 @@ class OLD_command:
                     payload['text'] = self.oldhelp[func]['usage']
                     payload['text'] += "\n"+self.oldhelp[func]['help']
                     self.slack.api_call("chat.postMessage",**payload)
+
+        elif text.startswith("olddate"):
+            nowtime = ""
+            if text == "olddate":
+                nowtime = time.strftime("%Y/%m/%d %H:%M")
+            else:
+                nowtime = re.search(r"(?<=olddate ).*",text,re.DOTALL).group().strip()
+
+            try:
+                nowstr = oldtime_util.timeTostr(nowtime)
+            except ValueError:
+                return 
+            payload["text"] = self.imageUpDown(nowstr)
+            print(payload['text'])
+            print(self.slack.api_call("chat.postMessage",**payload))
