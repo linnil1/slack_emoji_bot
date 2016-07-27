@@ -6,6 +6,7 @@ import json
 
 import multiprocessing as mp
 import time
+import sys
 
 class ntuosc:
     def __init__(self):
@@ -27,7 +28,9 @@ class ntuosc:
                     print(data)
                     try:
                         self.commandSelect(data[0])
-                    except not KeyboardInterrupt:
+                    except KeyboardInterrupt:
+                        break;
+                    except:
                         print(sys.exc_info())
                 else:
                     time.sleep(1)
