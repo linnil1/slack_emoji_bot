@@ -141,7 +141,7 @@ class KXGEN:
             self.messageSend(channel,helptext)
             
     def main(self,datadict):
-        if not datadict['type'] == 'message':
+        if not datadict['type'] == 'message' or 'subtype' in datadict:
             return 
 
         text = datadict['text']
