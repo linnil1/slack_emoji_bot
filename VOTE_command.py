@@ -149,7 +149,7 @@ class VOTE:
         print(str(voteresult))
 
 
-        text = "For result of "+self.title+"\n"
+        text = ""
         if self.type == "who":
             text += ",".join(self.options['users']) + "want"
         elif self.type == "yesno":
@@ -164,7 +164,7 @@ class VOTE:
             if len(sortarr)==0:
                 text = "No options"
             elif len(sortarr)<=1 or sortarr[0]['len'] > sortarr[1]['len']:
-                text += "Most :"+sortarr[0]['emoji']+":"+sortarr[0]['text']+'\n'
+                text += "Most : :"+sortarr[0]['emoji']+":"+sortarr[0]['text']+'\n'
                 text += str(sortarr[0]['len'])+" people -> "+",".join(sortarr[0]['users']) 
             else :
                 text = "Tie : more than two are "+str(sortarr[0]['len'])+" people\n"
@@ -185,7 +185,11 @@ class VOTE:
         text = datadict['text']
         
         if text.startswith("vote "):
-            datarr = shlex.split(text)
+            try:
+                datarr = shlex.split(text)
+            except ValueError as er:
+                self.messagePost(er.__str__())
+                return 
             print(datarr)
             index = 0 
             while True:
@@ -223,3 +227,19 @@ class VOTE:
             if not self.start:
                 self.payload['timestamp'] = datadict['ts']
                 self.emojiAdd(self.emojidict['AC'])
+        elif text == 'vote':
+            text  = "vote command -> just use messages to vote"
+            text += """
+```
+vote start        # start the vote
+vote title [title]# decide your title of vote
+vote type         # vote type
+          who     # Just vote "Who wants"
+          yesno   # Vote for yes no or no opinion
+          option  # mutiple option to choice you can use add to add
+vote add [option] # add option ( only for type=option)
+vote show         # show how many people each option
+vote end          # end the vote
+```
+"""
+            self.messagePost(text)

@@ -13,7 +13,7 @@ class ntuosc:
     def __init__(self):
         #from privacy
         privacy = json.loads(open("privacy.json").read())
-        self.custom= ""#Customize(privacy)
+        self.custom= Customize(privacy)
         self.slack = SlackClient(privacy['token'])
         self.old   = OLD_command(self.slack,self.custom)
         self.kxgen = KXGEN      (self.slack,self.custom)
