@@ -32,8 +32,8 @@ class ntuosc:
                         self.commandSelect(data[0])
                     except KeyboardInterrupt:
                         break;
-                   # except:
-                   #     print(sys.exc_info())
+                    except:
+                        print(sys.exc_info())
                 else:
                     time.sleep(1)
         else:

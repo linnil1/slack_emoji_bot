@@ -1,5 +1,5 @@
-from slackclient import SlackClient
 import shlex
+import json
 
 class VOTE:
     def __init__(self,slack,custom):
@@ -27,29 +27,25 @@ class VOTE:
     def init(self):
         self.start= False
         self.type = "" # who yesno option 
+        self.private = False
+        self.members = {} #need shared
+        self.noadd   = False
         self.title= ""
         self.ts= ""
         self.channel= ""
         self.options = []
 
-    def emojiAdd(self,name,fix=False):
-        if  fix:
-            self.payload['timestamp'] = self.ts
-        return self.slack.api_call("reactions.add",
-                name = name, **self.payload)
-    def messagePost(self,text,fix=False):
-        if fix and not self.start:
-            raise ValueError("How can you get this error")
-
-        if not fix:
-            return self.slack.api_call("chat.postMessage",
-                    text = text,
-                    **self.payload)
-        else:
-            return self.slack.api_call("chat.update",
-                    ts = self.ts,
-                    text = text,
-                    **self.payload)
+    def emojiAdd(self,name,**payload):
+        if not payload:
+            payload = self.payload
+        if 'timestamp' not in payload and 'ts' in payload:
+            payload['timestamp'] = payload['ts']
+        return self.slack.api_call("reactions.add", name = name, **payload)
+    def messagePost(self,text,fix=False,**payload):
+        if not payload:
+            payload = self.payload
+        method = "chat.postMessage" if not fix else "chat.update"
+        return self.slack.api_call(method, text = text, **payload)
 
     def typeSet(self,data):
         if self.type:
@@ -57,6 +53,18 @@ class VOTE:
         if data not in ['who','yesno','option']:
             raise ValueError("Type error ! It should be one of [who,yesno,option]")
         self.type = data
+    
+    def subtypeSet(self,data):
+        if data == "private":
+            if self.start:
+                raise ValueError("Vote has been started")
+            if self.private:
+                raise ValueError("private has been set")
+            self.private = True
+        if data == "noadd":
+            if self.type != "option":
+                raise ValueError("The type is not option")
+            self.noadd = True
 
     def titleSet(self,data):
         if self.title:
@@ -70,50 +78,113 @@ class VOTE:
             raise ValueError("Type not 'option'")
         if len(self.options) == 10:
             raise ValueError("Too many options")
+        if self.noadd:
+            raise ValueError("noadd has set, no option can be added")
         self.optionAdd( len(self.options)+1,data)
-        if self.start :
-            self.optionShow("*Vote Start!!* (Add option)",fix=True)
-            self.emojiAdd(self.options[-1]['emoji'],fix=True)
-
 
     def optionAdd(self,emoji,text):
+        emoji = self.emojidict[emoji]
         self.options.append({
-                "emoji":self.emojidict[emoji],
+                "emoji":emoji,
                 "text" :text,
                 "len"  :0,
                 "users":[]})
 
-    def optionShow(self,status,showcount=False,showpeople=False,needat=False,fix=False):
+        if self.start :
+            self.voteShow("*Vote Start!!* (Add option)",emojis=[emoji] ,fix=True,needall=True)
+
+
+    def optionParse(self,status,renew=False,showcount=False,showpeople=False):
+        if renew:
+            self.resultGet()
         text = status+"  Title : "+self.title + "\n"
         for opt in self.options:
             text+= ":"+opt['emoji']+": "
             if showcount:
                 text+= str(opt['len'])+" -> "
             if showpeople:
-                text+= ",".join([("@" if needat else "")+u for u in opt['users']])+" "
+                text+= ",".join([("@" if showpeople else "")+u for u in opt['users']])+" "
             text+= opt['text']+"\n"
             
-        return self.messagePost(text,fix)
-
-            
-
-    def voteShow(self,status="*Now Voting*",showcount=True,**kwargs):
-        if not self.start :
-            raise ValueError("Vote has not started yet")
-        reactions = self.slack.api_call("reactions.get",
-                channel=self.channel,timestamp=self.ts)['message']
+        return text
+    
+    def resultGetProcess(self,channel,ts,reactdict):
+        reactions = self.slack.api_call("reactions.get",channel=channel,timestamp=ts)['message']
         if 'reactions' not in reactions:
-            raise ValueError("No options react")
+            raise ValueError("Something Wrong")
         reactions = reactions['reactions']
 
         for react in reactions:
-            for index,dic in enumerate(self.options):
-                if dic['emoji'] == react['name']:
-                    self.options[index]['len'] = react['count']-1
-                    self.options[index]['users'] = [self.memberdict[u] for u in react['users'] if u!=self.myid]
-                    break;
+            name = react['name']
+            if name in [e['emoji'] for e in self.options] and react['count']>1:
+                if name not in reactdict:
+                    reactdict[name] = {'len':0,'users':[]}
+                reactdict[name]['len'] += react['count'] - 1
+                reactdict[name]['users'].extend(
+                        [self.memberdict[u] for u in react['users'] if u!=self.myid])
 
-        self.optionShow(status,showcount=showcount,**kwargs)
+    def resultGet(self):
+        reactdict = {}
+        if not self.private:
+            self.resultGetProcess(self.channel,self.ts,reactdict)
+        else:
+            for mem in self.members:
+                self.resultGetProcess(self.members[mem]['channel'],self.members[mem]['ts'],reactdict)
+
+        for index,dic in enumerate(self.options):
+            name = dic['emoji']
+            if name in reactdict:
+                self.options[index]['len'  ] = reactdict[name]['len'  ]
+                self.options[index]['users'] = reactdict[name]['users']
+
+    def voteShow(self,status="*Now Voting*",emojis=[],needall=False,fix=False,**kwargs):
+        if not self.start :
+            raise ValueError("Vote has not started yet")
+        text = self.optionParse(status,**kwargs)
+        self.messagePost(text,fix,channel=self.channel,ts=self.ts)
+        if not self.private:
+            for e in emojis:
+                self.emojiAdd(e,channel=self.channel,timestamp=self.ts)
+        if needall and self.private:
+            for mem in self.members:
+                self.membersPostProcess(mem,text,emojis=emojis,fix=fix)
+
+    def membersPostProcess(self,mem,text="",emojis=[],fix=False,needrecord=False):
+        if needrecord and fix:
+            raise ValueError("cannot fix and record together")
+        if needrecord and not text.strip():
+            raise ValueError("cannot record empty text")
+        if text:
+            message = self.messagePost(text,**self.members[mem])
+        if needrecord:
+            self.members[mem]['ts'] = message['ts']
+        else:
+            self.postMessage(text,fix,**self.members[mem])
+        for e in emojis:
+            self.emojiAdd(e,**self.members[mem])
+    
+    def messageRecord(self,text="",emojis=[]): # include emoji and needall=True
+        if not text.strip():
+            raise ValueError("cannot record empty text")
+
+        message      = self.messagePost(text)
+        self.ts      = message['ts']
+        self.channel = self.payload['channel']
+        if not self.private:
+            for e in emojis: 
+                self.emojiAdd(e,channel=self.channel,ts=self.ts)
+
+        #for private
+        if self.private:
+            members = self.slack.api_call("channels.info",channel=self.channel)['channel']['members']
+            for u  in members:
+                rep = self.slack.api_call("im.open",user=u)
+                if not rep['ok']:
+                    continue
+                self.members[u] = {"channel":rep['channel']['id']}
+
+            for u  in self.members:
+                self.membersPostProcess(u,text,emojis,needrecord=True)
     
     def voteStart(self):
         if not self.title:
@@ -130,58 +201,36 @@ class VOTE:
             self.optionAdd("no","no")
             self.optionAdd("ok","ok")
 
-        message = self.optionShow("*Vote Start!!*")
-        print(message)
-        self.ts      = self.payload['timestamp'] =  message['ts']
-        self.channel = self.payload['channel'  ]
-
-        for emoji in self.options:
-            self.emojiAdd(emoji['emoji'])
+        text = self.optionParse("*Vote Start!!*")
+        self.messageRecord(text,[e['emoji'] for e in self.options])
     
     def voteEnd(self):
-        self.voteShow("*Result*",showcount=True,showpeople=True)
+        self.voteShow("*Result*",renew=True,showcount=True,showpeople=not self.private)
         voteresult = {
                 "title":self.title,
                 "options":self.options,
                 "type":self.type,
                 "ts":self.ts,
-                "channel":self.channel}
-        print(str(voteresult))
+                "channel":self.channel,
+                "endts":self.ts}
 
-
-        text = ""
-        if self.type == "who":
-            text += ",".join(self.options['users']) + "want"
-        elif self.type == "yesno":
-            sortarr = sorted([opt for opt in self.options if opt['text']!="ok"],key=lambda opt:opt['len'],reverse=1)
-            if sortarr[0]['len'] == sortarr[1]['len']:
-                text = "Tie : "+str(sortarr[0]['len'])+" vs "+str(sortarr[1]['len'])
-            else:
-                text = "Win : "+sortarr[0]['text']+" "+str(sortarr[0]['len'])+" people"
-
-        elif self.type == "option":
-            sortarr = sorted([opt for opt in self.options if opt['text']!="ok"],key=lambda opt:opt['len'],reverse=1)
-            if len(sortarr)==0:
-                text = "No options"
-            elif len(sortarr)<=1 or sortarr[0]['len'] > sortarr[1]['len']:
-                text += "Most : :"+sortarr[0]['emoji']+":"+sortarr[0]['text']+'\n'
-                text += str(sortarr[0]['len'])+" people -> "+",".join(sortarr[0]['users']) 
-            else :
-                text = "Tie : more than two are "+str(sortarr[0]['len'])+" people\n"
-
-        self.messagePost(text)
-
-        print(str(voteresult))
+        #open("voteLog","w+").write(json.dumps(voteresult))
+        print("LOG:  "+str(voteresult))
         self.init()
 
     def main(self,datadict):
         if not datadict['type'] == 'message' or 'subtype' in datadict:
             return 
+
         self.payload = {
             "channel"  : datadict['channel'],
             "timestamp": datadict['ts'],
             "username" : "投票voter",
             "icon_emoji": ":_e6_8a_95:"}
+        if datadict['channel'].startswith("D"):
+            self.messagePost("Error ! Use it at channel")
+            return 
+
         text = datadict['text']
         
         if text.startswith("vote "):
@@ -191,7 +240,7 @@ class VOTE:
                 self.messagePost(er.__str__())
                 return 
             print(datarr)
-            index = 0 
+            index = 1 
             while True:
                 if index == len(datarr):
                     break;
@@ -209,10 +258,18 @@ class VOTE:
                     elif data == "type":
                         self.typeSet(datarr[index+1])
                         index+=1
+                    elif data == "subtype":
+                        self.subtypeSet(datarr[index+1])
+                        index+=1
                     elif data == "show":
-                        self.voteShow()
+                        if self.private:
+                            raise ValueError("vote cannot show during the vote because type = private")
+                        self.voteShow(renew=True,showcount=True)
                     elif data == "end":
                         self.voteEnd()
+                    else:
+                        print(data)
+                        raise ValueError("Arugments error")
 
                 except IndexError as er:
                     self.messagePost("Arguments error")
@@ -237,9 +294,19 @@ vote type         # vote type
           who     # Just vote "Who wants"
           yesno   # Vote for yes no or no opinion
           option  # mutiple option to choice you can use add to add
+vote subtype      # vote type
+          noadd   # for stop add option ( only for type=option)
+          private # Private vote, you need to vote by direct message to bot
+                  # This should be set before start. When start, my bot will send you message of vote
 vote add [option] # add option ( only for type=option)
 vote show         # show how many people each option
 vote end          # end the vote
+
+Example:          # the command can be chained
+vote type option add Taipei
+vote title "Where we want to go?"
+vote start
+vote add Tainan
 ```
 """
             self.messagePost(text)
