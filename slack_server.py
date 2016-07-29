@@ -25,19 +25,30 @@ class ntuosc:
             while True:
                 data = self.slack.rtm_read()
                 if data:
-                    if data[0]['type'] in ['user_typing','reconnect_url','pref_change']:
+                    if data[0]['type'] in ['user_typing','reconnect_url','pref_change','presence_change']:
                         continue
                     print(data)
                     try:
                         self.commandSelect(data[0])
                     except KeyboardInterrupt:
-                        break;
+                        raise
                     except:
                         print(sys.exc_info())
+                        time.sleep(1)
                 else:
                     time.sleep(1)
         else:
             print("Connect Error! Please Reconnect")
+
+    def start(self):
+        while True:
+            try:
+                self.startRTM();
+            except KeyboardInterrupt:
+                raise
+            except:
+                print(sys.exc_info())
+                time.sleep(1)
 
 
     def commandSelect(self,data):
@@ -47,4 +58,4 @@ class ntuosc:
 
 
 ntu =  ntuosc()
-ntu.startRTM()
+ntu.start()
