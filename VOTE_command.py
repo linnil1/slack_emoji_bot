@@ -1,12 +1,19 @@
 import shlex
 import json
 import multiprocessing as MP
+import threading
+
+import votetime_util
+from datetime import datetime as DT
+import time
 
 class VOTE:
     def __init__(self,slack,custom):
-        """ needed word: 我 好中不 一二三四五六七八九十 票 行"""
+        """ needed word: 我 好中不 一二三四五六七八九十 票 行 廢"""
         self.slack= slack
         self.custom = custom
+        self.threadend = False
+        self.thread = None
         self.init()
         self.emojidict = {
                 "me" :"_e6_88_91",
@@ -24,7 +31,6 @@ class VOTE:
 
         self.myid = self.slack.api_call("auth.test")['user_id']
 
-
     def init(self):
         self.start   = False
         self.type    = "" # who yesno option 
@@ -37,6 +43,9 @@ class VOTE:
         self.ts      = ""
         self.channel = ""
         self.options = []
+        self.timestart = None
+        self.timeend   = None
+        self.expectend = None
 
     def emojiAdd(self,name,**payload):
         if not payload:
@@ -47,6 +56,10 @@ class VOTE:
     def messagePost(self,text,fix=False,**payload):
         if not payload:
             payload = self.payload
+        else:
+            payload['icon_emoji'] = self.payload['icon_emoji']
+            payload['username'] = self.payload['username']
+
         if fix == 2:
             method = "chat.delete"
             if 'timestamp' not in payload and 'ts' in payload:
@@ -63,23 +76,39 @@ class VOTE:
         self.type = data
     
     def subtypeSet(self,data):
-        if data == "private":
-            if self.start:
-                raise ValueError("Vote has been started")
-            if self.private:
-                raise ValueError("private has been set")
-            self.private = True
         if data == "noadd":
             if self.type != "option":
                 raise ValueError("The type is not option")
             self.noadd = True
         
+        if self.start:
+            raise ValueError("Vote has been started")
+        if data == "private":
+            if self.private:
+                raise ValueError("private has been set")
+            self.private = True
         if data == "onlyone":
-            if self.start:
-                raise ValueError("Vote has been started")
             if self.type == "who":
                 raise ValueError("The type is who, meaningless")
             self.onlyone = True
+
+    def endGo(self):
+        while DT.now() <= self.expectend:
+            time.sleep(1)
+        self.main({'type':"message",'channel':self.channel,'ts':self.ts,'text':"vote end"})
+        self.threadend = True
+
+    def timeSet(self,cdata,data):
+        if self.thread != None:
+            raise ValueError("Time has been set")
+
+        if cdata == 'duration':
+            self.expectend = votetime_util.getRel(data)
+        elif cdata == 'endtime':
+            self.expectend = votetime_util.getAbs(data)
+
+        self.thread = threading.Thread(target=self.endGo)
+        self.thread.start()
 
     def titleSet(self,data):
         if self.title:
@@ -114,6 +143,9 @@ class VOTE:
         text = status+"  Title : "+self.title + "\n"
         if self.onlyone:
             text+= "Select *one* option of choices\n"
+
+        t = DT.now() if not self.timeend else self.timeend
+        text += "Duration : "+votetime_util.getduration(self.timestart,t)+"\n"
         if showpeople:
             showcount = True
         peoplevote = dict(self.peoplevote)
@@ -145,11 +177,12 @@ class VOTE:
         else:
             spoil = [ "@"+self.memberdict[u] for u in peoplevote if peoplevote[u]==0]
 
-        if len(spoil):
-            if showcount:
-                text+= "Spoil : "+str(len(spoil))+" "
+        if len(spoil) and showcount:
+            text+= ":_e5_bb_a2:"
+            text+= str(len(spoil))+" -> "
             if showpeople:
-                text+= "-> "+ ",".join(spoil)+"\n"
+                text+= ",".join(spoil)+" "
+            text+= "spoiled\n"
         return text
     
     def resultGetProcess(self,channel,ts,reactdict):
@@ -257,10 +290,12 @@ class VOTE:
             self.optionAdd("no","no")
             self.optionAdd("ok","ok")
 
+        self.timestart = DT.now()
         text = self.optionParse("*Vote Start!!*")
         self.messageRecord(text,[e['emoji'] for e in self.options])
     
     def voteEnd(self):
+        self.timeend = DT.now()
         self.voteShow("*Result*",renew=True,showcount=True,showpeople=not self.private)
         if self.private:
             self.voteShow("*delete*",fix=2,needall=True)
@@ -274,7 +309,9 @@ class VOTE:
                  "noadd":self.noadd,
                 "ts":self.ts,
                 "channel":self.channel,
-                "peoplevote":self.peoplevote}
+                "peoplevote":self.peoplevote,
+                "timestart":self.timestart,
+                "timeend":self.timeend}
 
         #open("voteLog","w+").write(json.dumps(voteresult))
         print("LOG:  "+str(voteresult))
@@ -295,6 +332,11 @@ class VOTE:
                     self.peoplevote[who] = 0
 
     def main(self,datadict):
+        if self.threadend:
+            self.thread.join()
+            self.threadend = False
+            self.thread = None
+
         if datadict['type'] == "reaction_added" :
             self.peoplevoteCount(datadict['reaction'],datadict['item'],datadict['user'])
         if not datadict['type'] == 'message' or 'subtype' in datadict:
@@ -338,12 +380,16 @@ class VOTE:
                     elif data == "subtype":
                         self.subtypeSet(datarr[index+1])
                         index+=1
+                    elif data == "duration" or data == 'endtime':
+                        self.timeSet(data,datarr[index+1])
+                        index+=1
                     elif data == "show":
                         if self.private:
                             raise ValueError("vote cannot show during the vote because type = private")
                         self.voteShow(renew=True,showcount=True)
                     elif data == "end":
                         self.voteEnd()
+                        break;
                     else:
                         raise ValueError(data+" Arugments error")
 
@@ -375,6 +421,10 @@ vote subtype      # vote type
           private # Private vote, you need to vote by direct message to bot
                   # This should be set before start. When start, my bot will send you message of vote
           onlyone # One people can only vote for one choice
+vote duraion [time] # set the duration of vote from now
+                  #format  like : 1Y1M1D3h4m5s
+     endtime [time] # set the endtime of vote
+                  #format  like : 2015/1/2 3:5:6,3/4 4,3/4,4,4:5
 vote add [option] # add option ( only for type=option)
 vote show         # show how many people each option
 vote end          # end the vote
