@@ -1,7 +1,6 @@
 import shlex
 import json
 import multiprocessing as MP
-import threading
 
 import votetime_util
 from datetime import datetime as DT
@@ -12,7 +11,7 @@ class VOTE:
         """ needed word: 我 好中不 一二三四五六七八九十 票 行 廢"""
         self.slack= slack
         self.custom = custom
-        self.threadend = False
+        self.threadend = MP.Value('i',False)
         self.thread = None
         self.init()
         self.emojidict = {
@@ -45,6 +44,11 @@ class VOTE:
         self.options = []
         self.timestart = None
         self.timeend   = None
+        if self.thread != None:
+            self.thread.terminate()
+            self.thread.join()
+        self.threadend.value = False
+        self.thread = None
         self.expectend = None
 
     def emojiAdd(self,name,**payload):
@@ -95,8 +99,7 @@ class VOTE:
     def endGo(self):
         while DT.now() <= self.expectend:
             time.sleep(1)
-        self.main({'type':"message",'channel':self.channel,'ts':self.ts,'text':"vote end"})
-        self.threadend = True
+        self.threadend.value = True
 
     def timeSet(self,cdata,data):
         if self.thread != None:
@@ -107,7 +110,7 @@ class VOTE:
         elif cdata == 'endtime':
             self.expectend = votetime_util.getAbs(data)
 
-        self.thread = threading.Thread(target=self.endGo)
+        self.thread = MP.Process(target=self.endGo)
         self.thread.start()
 
     def titleSet(self,data):
@@ -332,10 +335,14 @@ class VOTE:
                     self.peoplevote[who] = 0
 
     def main(self,datadict):
-        if self.threadend:
-            self.thread.join()
-            self.threadend = False
-            self.thread = None
+        if self.threadend.value:
+            voteend = {
+                    'type' : "message",
+                    'channel' : self.channel,
+                    'text' : "vote end",
+                    'ts' : self.ts }
+            self.threadend.value = False
+            self.main(voteEnd)
 
         if datadict['type'] == "reaction_added" :
             self.peoplevoteCount(datadict['reaction'],datadict['item'],datadict['user'])

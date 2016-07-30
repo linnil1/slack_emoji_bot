@@ -13,7 +13,7 @@ class ntuosc:
     def __init__(self):
         #from privacy
         privacy = json.loads(open("privacy.json").read())
-        self.custom= ""#Customize(privacy)
+        self.custom= Customize(privacy)
         self.slack = SlackClient(privacy['token'])
         self.old   = OLD_command(self.slack,self.custom)
         self.kxgen = KXGEN      (self.slack,self.custom)
@@ -36,6 +36,9 @@ class ntuosc:
                         print(sys.exc_info())
                         time.sleep(1)
                 else:
+                    self.old  .main({"type":"yes"})
+                    self.kxgen.main({"type":"yes"})
+                    self.vote .main({"type":"yes"})
                     time.sleep(1)
         else:
             print("Connect Error! Please Reconnect")

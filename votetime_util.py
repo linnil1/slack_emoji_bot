@@ -44,13 +44,11 @@ def strParse(datastr):
         tmp = DT.strptime(datastr,"%H")
     except ValueError: pass
     else:
-        print(1)
         return timeParse(str(tmp.hour)+":0")
     try: 
         tmp = DT.strptime(datastr,"%m%d %H")
     except ValueError: pass
     else:
-        print(2)
         return timeParse("{}/{} {}:0".format(tmp.mon,tmp.day,tmp.hour))
 
     return timeParse(datastr)
