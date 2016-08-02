@@ -119,7 +119,6 @@ class OLD_command:
         return dig
 
     def futurereactCount(self,datadict):
-        print(self.futurereact)
         if datadict['type'] == 'message' :
             if 'subtype' not in datadict or datadict['subtype'] not in ["me_message","message_changed","message_deleted"]:
                 ch = datadict['channel']

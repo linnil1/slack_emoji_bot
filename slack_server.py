@@ -3,16 +3,15 @@ from CustomizeSlack import Customize
 from OLD_command import OLD_command
 from KXGEN_command import KXGEN
 from VOTE_command import VOTE
-import json
+import password_crypt 
 
-import multiprocessing as mp
 import time
 import sys
 
 class ntuosc:
     def __init__(self):
         #from privacy
-        privacy = json.loads(open("privacy.json").read())
+        privacy = password_crypt.logIn()
         self.custom= Customize(privacy)
         self.slack = SlackClient(privacy['token'])
         self.old   = OLD_command(self.slack,self.custom)
@@ -24,21 +23,16 @@ class ntuosc:
             print("Start")
             while True:
                 data = self.slack.rtm_read()
-                if data:
-                    if data[0]['type'] in ['user_typing','reconnect_url','pref_change','presence_change']:
-                        continue
+                if data and data[0]['type'] not in ['user_typing','reconnect_url','pref_change','presence_change']:
                     print(data)
-                    try:
-                        self.commandSelect(data[0])
-                    except KeyboardInterrupt:
-                        raise
-                    except:
-                        print(sys.exc_info())
+                try:
+                    self.commandSelect(data[0] if data else {"type":None})
+                    if not data:
                         time.sleep(1)
-                else:
-                    self.old  .main({"type":"yes"})
-                    self.kxgen.main({"type":"yes"})
-                    self.vote .main({"type":"yes"})
+                except KeyboardInterrupt:
+                    raise
+                except:
+                    print(sys.exc_info())
                     time.sleep(1)
         else:
             print("Connect Error! Please Reconnect")
@@ -48,7 +42,7 @@ class ntuosc:
             try:
                 self.startRTM();
             except KeyboardInterrupt:
-                raise
+                break
             except:
                 print(sys.exc_info())
                 time.sleep(1)

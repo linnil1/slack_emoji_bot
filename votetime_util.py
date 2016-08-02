@@ -61,7 +61,7 @@ def getAbs(datastr):
 
 def getduration(t1,t2):#start end
     r = timeRel(t2,t1)
-    return "{}Y {}M {}M {}h {}m {}s".format(
+    return "{}Y {}M {}D {}h {}m {}s".format(
             r.years,r.months,r.days,r.hours,r.minutes,r.seconds)
 
 #for testing
