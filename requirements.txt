@@ -1,0 +1,7 @@
+slackclient
+beautifulsoup4
+lxml
+python-dateutil
+simple-crypt
+numpy
+Pillow

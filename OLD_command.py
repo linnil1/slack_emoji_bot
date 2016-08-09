@@ -13,6 +13,12 @@ import json
 import time
 from multiprocessing import Process,Queue
 
+from images2gif import writeGif
+from PIL import Image
+import os
+import math
+
+
 class OLD_command:
     def __init__(self,slack,custom):
         self.dir = "word_data/"
@@ -81,6 +87,44 @@ class OLD_command:
         for word in qstr:
             emoji_str += worddict[word]
         return emoji_str
+
+    def gifTime(self,text): #default 0.2s
+        t = re.findall(r"^-t\s+(.*?)\s+",text)
+        if len(t)>1:
+            raise ValueError("Arguments Error")
+        elif len(t) == 0:
+            return 0.2
+        try:
+            giftime = float(t[0])
+            assert(giftime>=0)
+        except:
+            raise ValueError("time number error")
+        if giftime >= 10:
+            raise ValueError("time number too big")
+        return giftime
+
+
+
+    def gifMake(self,data):
+        text = self.imageUpDown(data)
+        giftime = self.gifTime(text)
+        onlyemoji = re.findall(r":(.*?):",text)
+        if len(onlyemoji) < 2:
+            raise ValueError("Need at least two words")
+        hashname = "oldgif_"+str(math.floor(giftime*1000))+"_"+str(hash(str(onlyemoji)))
+
+        if not os.path.isfile(self.dir+hashname):
+            #create a gif without transparent
+            images = []
+            for name in onlyemoji:
+                img = Image.open(self.dir+name)
+                img.load() # required for png.split()
+                background = Image.new("RGB", img.size, (255, 255, 255))
+                background.paste(img, mask=img.split()[3]) 
+                images.append(background)
+            writeGif(self.dir+hashname, images, duration=giftime)
+            self.custom.emoji.upload(self.dir,hashname)
+        return ':'+hashname+':'
 
     def main(self,datadict):
         if 'future' not in datadict:
@@ -184,4 +228,14 @@ class OLD_command:
                 return 
             payload["text"] = self.imageUpDown(nowstr)
             print(payload['text'])
+            print(self.slack.api_call("chat.postMessage",**payload))
+
+        elif text.startswith("oldgif"):
+            data = re.search(r"(?<=oldgif ).*",text,re.DOTALL).group().strip()
+
+            try:
+                payload['text'] = self.gifMake(data)
+            except ValueError as er:
+                payload['text'] = self.messagePost(er.__str__())
+
             print(self.slack.api_call("chat.postMessage",**payload))
