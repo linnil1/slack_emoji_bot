@@ -124,6 +124,8 @@ class OLD_command:
                 images.append(background)
             writeGif(self.dir+hashname, images, duration=giftime)
             self.custom.emoji.upload(self.dir,hashname)
+
+        print("giflen = "+str(len(onlyemoji)))
         return ':'+hashname+':'
 
     def main(self,datadict):
@@ -162,6 +164,8 @@ class OLD_command:
             emoji_str = self.imageUpDown(data)
 
             payload,futuretext = self.oldreact.main(payload,emoji_str,datadict['ts'])
+            if payload == None:
+                return
             
             onlyemoji = re.findall(r":(\w+):",futuretext)
             for emojiname in onlyemoji:
@@ -205,6 +209,8 @@ class OLD_command:
 `oldset [aWord] [newName]  ` *set alias for 小篆emoji*
 `oldhelp                   ` *get help for the usage of this module*
 `oldtime (time)            ` *show date and time by 小篆emoji*
+`oldgif (-t time) [text]   ` *combine 小篆emojis into gif*
+`oldgifreact (floor=-1) [text]` *give reactions of 小篆emoji gif to specific floor message*
 """.strip()
             
             self.slack.api_call("chat.postMessage",**payload,text = text,
@@ -230,7 +236,7 @@ class OLD_command:
             print(payload['text'])
             print(self.slack.api_call("chat.postMessage",**payload))
 
-        elif text.startswith("oldgif"):
+        elif text.startswith("oldgif "):
             data = re.search(r"(?<=oldgif ).*",text,re.DOTALL).group().strip()
 
             try:
@@ -239,3 +245,16 @@ class OLD_command:
                 payload['text'] = self.messagePost(er.__str__())
 
             print(self.slack.api_call("chat.postMessage",**payload))
+        
+        elif text.startswith("oldgifreact "):
+            data = re.search(r"(?<=oldgifreact ).*",text,re.DOTALL).group().strip()
+            emoji_str = self.imageUpDown(data)
+
+            payload,futuretext = self.oldreact.main(payload,emoji_str,datadict['ts'],"oldgifreact")
+            if payload == None:
+                return
+
+            onlyemoji = re.findall(r":(.*?):",self.gifMake(futuretext))
+
+            payload['name'] = onlyemoji[0]
+            print(self.slack.api_call("reactions.add",**payload))

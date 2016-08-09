@@ -7,8 +7,6 @@ Author : linnil1
 
 Source : https://github.com/linnil1/slack_emoji_bot
 
-There are 6 operations : ["old","oldask","oldreact","oldset","oldhelp","oldtime"]
-
 You can see detail BY oldhelp
 
 ## Operations
@@ -117,3 +115,27 @@ You can see detail BY oldhelp
   `oldtime`
 
   `oldtime 2014/1/12 3:`
+
+* oldgif 
+
+  Usage: `oldgif (-t delay=0.1) [text]` **combine 小篆emojis into gif**
+
+  delay is float and it's range is 0<= delay <= 10 (second)
+
+  For example:
+
+  `oldgif 小篆`
+  
+  `oldgif -t 1 小篆`
+
+* oldgifreact
+
+  Usage: `oldgifreact (floor=-1) [text]` **give reactions of 小篆emoji gif to specific floor message**
+
+  For example:
+
+  `oldgifreact 小篆`
+  
+  `oldgifreact -2 小篆`
+  
+  `oldgifreact 2 -t 1 小篆`

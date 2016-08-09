@@ -77,7 +77,7 @@ class oldreact:
         print(self.slack.api_call("reactions.add",**payload))
 
 
-    def main(self,payload,emoji_str,ts):
+    def main(self,payload,emoji_str,ts,method="oldreact"):
         floors = -1
         futuretext = emoji_str
         try: #if has floor option
@@ -85,8 +85,8 @@ class oldreact:
             futuretext = re.search(r"( .*)",emoji_str,re.DOTALL).group().strip()
             if floors > 0:
                 self.getFileID(payload,ts,0)
-                self.futurereactAdd(payload,"oldreact 0 "+futuretext,floors)
-                return 
+                self.futurereactAdd(payload,method+" 0 "+futuretext,floors)
+                return (None,None)
         except:
             pass
 
