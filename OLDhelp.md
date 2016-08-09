@@ -9,7 +9,7 @@ Source : https://github.com/linnil1/slack_emoji_bot
 
 There are 6 operations : ["old","oldask","oldreact","oldset","oldhelp","oldtime"]
 
-You can see detail of operation by oldhelp (func...)
+You can see detail BY oldhelp
 
 ## Operations
 * old 
@@ -32,16 +32,16 @@ You can see detail of operation by oldhelp (func...)
 
 * oldask
 
-  Usage: `oldask [6characters]` **ask what is the emoji character**
-  
+  Usage: `oldask [6characters]` **To ask what is the chinese word of the url-encoded string**
+
   The form of emoji name is "_ab_cd_ef" (abcdef is hex)
-  
+
   And 6characters is the emoji name without "_"
-  
+
   In python, 6characters should be same as `urllib.parse.quote("字").replace("_","")`
-  
+
   If we cannot find the word, it doesn't ouput anything
-  
+
   For example: 黑 is _e9_bb_91 and the 6characters is "e9bb91"
   
   `oldask e9bb91`
@@ -92,17 +92,17 @@ You can see detail of operation by oldhelp (func...)
 
   `oldset 吃 eat`
 
-* oldhelp (func...)
+* oldhelp
 
-  Usage: `oldhelp` **get help for the usage of this modle or the function**
+  Usage: `oldhelp` **get help for the usage of this module**
 
-  for example: oldhelp old oldask
+  for example: oldhelp
 
-  If you want to see more clear statement see [OLDhelp.md]
+  You will get the link of this [document](OLDhelp.md)
   
 * oldtime
 
-  Usage: `oldtime (time)` **show the date and time by 小篆emoji**
+  Usage: `oldtime (time)` **show date and time by 小篆emoji**
 
   if time is not specific , it will output now time
 

@@ -2,6 +2,7 @@
 # -*- coding: utf-8  -*-
 
 from CustomizeSlack import Customize
+from oldreact_util import oldreact
 import oldtime_util 
 import urllib.request
 import urllib.parse
@@ -18,9 +19,7 @@ class OLD_command:
         self.keyword = "old"
         self.slack  = slack
         self.custom = custom
-        self.oldhelp= json.loads(open("OLDhelp.json").read())
-        self.futurereact = {}
-        # {channel:[{count:,arr:[,]},{}]
+        self.oldreact = oldreact(self,slack)
 
     def filenameTo(self,word):
         return urllib.parse.quote(word).lower().replace("%","_")
@@ -83,77 +82,9 @@ class OLD_command:
             emoji_str += worddict[word]
         return emoji_str
 
-    def getFileID(self,payload,ts,count): #count <=0
-        count = -count+1 # because inclusive
-        target = {}
-        for i in range(4):
-            target =self.slack.api_call("channels.history",
-                    channel=payload['channel'],
-                    count=count,
-                    latest=ts,
-                    inclusive=1)
-            if float(target['messages'][0]['ts']) >= float(ts):
-                break;
-            time.sleep(0.25)
-        print("history :"+str(ts)+"-"+str(count))
-
-        target = target['messages'][count-1]
-
-        if 'comment' in target :
-            payload['file_comment'] = target['comment']['id']         
-        elif 'file' in target :
-            payload['file'] = target['file']['id']         
-        else:
-            payload['timestamp'] = target['ts']
-
-
-    def getFloor(self,data):
-        """ It should be separated by space and the range is [-F,F] in hex """
-        strdig = re.search(r"^-?[0-9a-fA-F]\s",data)
-        try:
-            dig = int(strdig.group(),16)
-        except(AttributeError,TypeError,ValueError): #nonetype or strange dig
-            raise ValueError
-
-        print("Floor = " + str(dig))
-        return dig
-
-    def futurereactCount(self,datadict):
-        if datadict['type'] == 'message' :
-            if 'subtype' not in datadict or datadict['subtype'] not in ["me_message","message_changed","message_deleted"]:
-                ch = datadict['channel']
-                if ch not in self.futurereact:
-                    return 
-                if ch in self.futurereact:
-                    mails = self.futurereact[ch]
-                    for i in range(len(mails)):
-                        mails[i]['count'] -= 1
-                        if mails[i]['count'] == 0 :
-                            print("future Mail")
-                            futuredict = dict(datadict)
-                            futuredict['text'] = mails[i]['text']
-                            futuredict['future'] = True
-                            self.main(futuredict)
-                    self.futurereact[ch] = [ mail for mail in mails if mail['count'] != 0 ] 
-            elif datadict['subtype']=="message_deleted":
-                #if deleted will cause some count error
-                #but i don't want to deal it
-                return 
-
-    def futurereactAdd(self,payload,text,floors):
-        ch = payload['channel'] 
-        if ch not in self.futurereact:
-            self.futurereact[ch] = []
-        self.futurereact[ch].append({"count":floors,"text":text})
-        # http://stackoverflow.com/questions/9754034/can-i-create-a-shared-multiarray-or-lists-of-lists-object-in-python-for-multipro
-        # I don't know why not use only append
-
-        payload['name'] = "_e8_a1_8c" # ok in chinese
-        print(self.slack.api_call("reactions.add",**payload))
-
     def main(self,datadict):
         if 'future' not in datadict:
-            self.futurereactCount(datadict)
+            self.oldreact.futurereactCount(datadict)
             if not (datadict['type'] == 'message' and (
             'subtype' not in datadict or datadict['subtype']=="bot_message")):
                 return 
@@ -185,20 +116,8 @@ class OLD_command:
         elif text.startswith("oldreact "):
             data = re.search(r"(?<=oldreact ).*",text,re.DOTALL).group().strip()
             emoji_str = self.imageUpDown(data)
-            
-            floors = -1
-            futuretext = emoji_str
-            try: #if has floor option
-                floors = self.getFloor(emoji_str)
-                futuretext = re.search(r"( .*)",emoji_str,re.DOTALL).group().strip()
-                if floors > 0:
-                    self.getFileID(payload,datadict['ts'],0)
-                    self.futurereactAdd(payload,"oldreact 0 "+futuretext,floors)
-                    return 
-            except:
-                pass
 
-            self.getFileID(payload,datadict['ts'],floors)
+            payload,futuretext = self.oldreact.main(payload,emoji_str,datadict['ts'])
             
             onlyemoji = re.findall(r":(\w+):",futuretext)
             for emojiname in onlyemoji:
@@ -235,27 +154,22 @@ class OLD_command:
             print(self.slack.api_call("chat.postMessage",**payload))
         
         elif text.startswith("oldhelp"):
-            allfunc =list(self.oldhelp['allfunc'])
-            needfunc=[]
-            userask = re.findall(r"\w+",text)
-
-            if len(userask)>1 and userask[0] == "oldhelp":
-                for user in userask[1:]:
-                    if user in allfunc:
-                        allfunc.remove(user)
-                        needfunc.append(user)
+            text ="""
+`old [text]                ` *transfer text to 小篆emoji.*
+`oldask [6characters]      ` *To ask what is the chinese word of the url-encoded string*
+`oldreact (floor=-1) [text]` *give reactions of 小篆emoji to specific floor message*
+`oldset [aWord] [newName]  ` *set alias for 小篆emoji*
+`oldhelp                   ` *get help for the usage of this module*
+`oldtime (time)            ` *show date and time by 小篆emoji*
+""".strip()
             
-            if not needfunc : #empty
-                payload['text'] = self.oldhelp['purpose']
-                self.slack.api_call("chat.postMessage",**payload)
-                payload['text'] = "\n".join( [ self.oldhelp[func]['usage'] for func in allfunc] )
-                self.slack.api_call("chat.postMessage",**payload)
-
-            else:
-                for func in needfunc:
-                    payload['text'] = self.oldhelp[func]['usage']
-                    payload['text'] += "\n"+self.oldhelp[func]['help']
-                    self.slack.api_call("chat.postMessage",**payload)
+            self.slack.api_call("chat.postMessage",**payload,text = text,
+                    attachments=[{
+                        "author_name":"linnil1",
+                        "title":"OLD module document",
+                        "title_link":"https://github.com/linnil1/slack_emoji_bot/blob/master/OLDhelp.md",
+                        "text":"You can see more details in the document\nor see <https://github.com/linnil1/slack_emoji_bot|source>"
+                        }])
 
         elif text.startswith("oldtime"):
             nowtime = ""
