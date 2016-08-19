@@ -3,6 +3,11 @@
 
 This module is set to be used by message as command line in the channel in Slack
 
+Requirement :
+
+	Python 3.5
+
+
 There are some command :
 
 * old module
@@ -14,10 +19,11 @@ There are some command :
 	* oldset [a_word] [new_name]
 	* oldask [6characters]
 	* oldhelp [funcs...]
+	* oldgif (-t second=0.1) [text]
+	* oldgifreact (floor=-1) [text]
 	
     You can see it at oldhelp.md
-    
-  
+ 
  * KXGEN module
  
  	This module will grab the png data from kxgen website
@@ -29,7 +35,7 @@ There are some command :
  	Use this module to vote
     * vote xxx oooo xxx
     * votehelp
-    
+
 The usage is write inside the command
 
 Usually, you can type xxhelp for help

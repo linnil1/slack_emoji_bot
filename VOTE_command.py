@@ -11,9 +11,6 @@ class VOTE:
         """ needed word: 我 好中不 一二三四五六七八九十 票 行 廢"""
         self.slack= slack
         self.custom = custom
-        self.threadend = MP.Value('i',False)
-        self.thread = None
-        self.init()
         self.emojidict = {
                 "me" :"_e6_88_91",
                 "yes":"_e5_a5_bd",
@@ -24,52 +21,74 @@ class VOTE:
                 4:"_e5_9b_9b",5:"_e4_ba_94",6:"_e5_85_ad",
                 7:"_e4_b8_83",8:"_e5_85_ab",9:"_e4_b9_9d",
                 10:"_e5_8d_81"}
+        #search id
         self.memberdict = {}
         for mem in self.slack.api_call("users.list")['members']:
             self.memberdict[mem['id']] = mem['name']
-
         self.myid = self.slack.api_call("auth.test")['user_id']
+        
+        #init and thread
+        self.threadend = MP.Value('i',False)
+        self.thread = None
+        self.init()
 
     def init(self):
+        #common value
         self.start   = False
         self.type    = "" # who yesno option 
-        self.private = False
-        self.members = MP.Manager().dict() #need shared
-        self.noadd   = False
-        self.onlyone = False
-        self.peoplevote = {}
+        self.options = []
         self.title   = ""
         self.ts      = ""
         self.channel = ""
-        self.options = []
+
+        #private
+        self.private = False
+        self.members = MP.Manager().dict() #need shared
+
+        #subtype
+        self.noadd   = False
+        self.onlyone = False
+        self.peoplevote = {}
+
+        #time and thread
         self.timestart = None
         self.timeend   = None
         if self.thread != None:
             self.thread.terminate()
             self.thread.join()
+            self.thread = None
         self.threadend.value = False
         self.thread = None
-        self.expectend = None
 
-    def emojiAdd(self,name,**payload):
+    def emojisAdd(self,names,**payload):
         if not payload:
             payload = self.payload
         if 'timestamp' not in payload and 'ts' in payload:
             payload['timestamp'] = payload['ts']
-        return self.slack.api_call("reactions.add", name = name, **payload)
+        #return self.slack.api_call("reactions.add", name = name, **payload)
+        for name in names:
+            self.slack.api_call("reactions.add", name = name, **payload)
     def messagePost(self,text,fix=False,**payload):
+        """ fix  type
+            False : post message
+            True  : update message
+            2     : delete message
+        """
         if not payload:
             payload = self.payload
         else:
             payload['icon_emoji'] = self.payload['icon_emoji']
             payload['username'] = self.payload['username']
 
-        if fix == 2:
+        if   fix == True :
+            method = "chat.update"
+        elif fix == False:
+            method = "chat.postMessage"
+        elif fix == 2    :
             method = "chat.delete"
             if 'timestamp' not in payload and 'ts' in payload:
                 payload['timestamp'] = payload['ts']
-        else:
-            method = "chat.postMessage" if not fix else "chat.update"
+
         return self.slack.api_call(method, text = text, **payload)
 
     def typeSet(self,data):
@@ -78,6 +97,13 @@ class VOTE:
         if data not in ['who','yesno','option']:
             raise ValueError("Type error ! It should be one of [who,yesno,option]")
         self.type = data
+
+        if   self.type == "who"  :
+            self.optionAdd("me","me")
+        elif self.type == "yesno":
+            self.optionAdd("yes","yes")
+            self.optionAdd("no" ,"no" )
+            self.optionAdd("ok" ,"ok" )
     
     def subtypeSet(self,data):
         if data == "noadd":
@@ -88,8 +114,6 @@ class VOTE:
         if self.start:
             raise ValueError("Vote has been started")
         if data == "private":
-            if self.private:
-                raise ValueError("private has been set")
             self.private = True
         if data == "onlyone":
             if self.type == "who":
@@ -97,7 +121,7 @@ class VOTE:
             self.onlyone = True
 
     def endGo(self):
-        while DT.now() <= self.expectend:
+        while DT.now() <= self.timeend:
             time.sleep(1)
         self.threadend.value = True
 
@@ -106,9 +130,9 @@ class VOTE:
             raise ValueError("Time has been set")
 
         if cdata == 'duration':
-            self.expectend = votetime_util.getRel(data)
+            self.timeend = votetime_util.getRel(data)
         elif cdata == 'endtime':
-            self.expectend = votetime_util.getAbs(data)
+            self.timeend = votetime_util.getAbs(data)
 
         self.thread = MP.Process(target=self.endGo)
         self.thread.start()
@@ -139,19 +163,38 @@ class VOTE:
         if self.start :
             self.voteShow("*Vote Start!!* (Add option)",emojis=[emoji] ,fix=True,needall=True)
 
+    def oneoptionParse(self,opt,users,showcount,showpeople):
+        text  = ":"+opt['emoji']+": "+opt['text']
+
+        if showcount:
+            text += " -> "+str(len(users))
+        if showpeople:
+            text += " : "
+            text += ",".join(["@"+self.memberdict[u] for u in users])
+
+        return text+"\n"
 
     def optionParse(self,status,renew=False,showcount=False,showpeople=False):
-        if renew:
+        if renew and (showcount or showpeople):
             self.resultGet()
+        if showpeople:
+            showcount = True
+        if self.private:
+            showpeople = False
+
         text = status+"  Title : "+self.title + "\n"
         if self.onlyone:
             text+= "Select *one* option of choices\n"
 
-        t = DT.now() if not self.timeend else self.timeend
-        text += "Duration : "+votetime_util.getduration(self.timestart,t)+"\n"
-        if showpeople:
-            showcount = True
-        peoplevote = dict(self.peoplevote)
+        if self.timeend :
+            text += "Time Left : "+votetime_util.getduration(
+                    DT.now()      ,self.timeend)+"\n"
+        elif self.timestart:
+            text += "Duration : " +votetime_util.getduration(
+                    self.timestart,DT.now()    )+"\n"
+
+        # calc how many people vote the option
+        peoplevote = dict(self.peoplevote) #copy one
         for u in self.options:
             for i in u['users']:
                 if i in peoplevote:
@@ -163,43 +206,37 @@ class VOTE:
             text+= str(len(peoplevote))+" people vote\n"
             
         for opt in self.options:
-            text+= ":"+opt['emoji']+": "
-            users = opt['users']
             if self.onlyone:
                 users = [u for u in opt['users'] if peoplevote[u] ==1]
-            users = ["@"+self.memberdict[u] for u in users]
-            if showcount:
-                text+= str(len(users))+" -> "
-            if showpeople:
-                text+= ",".join(users)+" "
-            text+= opt['text']+"\n"
+            else:
+                users = opt['users']
+            text += self.oneoptionParse(opt,users,showcount,showpeople)
 
+        # cal who spoil 
         spoil = []
         if self.onlyone:
-            spoil = [ "@"+self.memberdict[u] for u in peoplevote if peoplevote[u]!=1]
+            spoil = [ u for u in peoplevote if peoplevote[u]!=1]
         else:
-            spoil = [ "@"+self.memberdict[u] for u in peoplevote if peoplevote[u]==0]
+            spoil = [ u for u in peoplevote if peoplevote[u]==0]
 
         if len(spoil) and showcount:
-            text+= ":_e5_bb_a2:"
-            text+= str(len(spoil))+" -> "
-            if showpeople:
-                text+= ",".join(spoil)+" "
-            text+= "spoiled\n"
+            text += self.oneoptionParse( {
+                'text':"spoiled",
+                'emoji':"_e5_bb_a2"},spoil,showcount,showpeople)
+
         return text
     
     def resultGetProcess(self,channel,ts,reactdict):
         reactions = self.slack.api_call("reactions.get",channel=channel,timestamp=ts)['message']
         if 'reactions' not in reactions:
-            raise ValueError("Something Wrong")
+            raise ValueError("No option")
         reactions = reactions['reactions']
 
         for react in reactions:
             name = react['name']
             if name in [e['emoji'] for e in self.options] and react['count']>1:
                 tmparr = reactdict[name] if name in reactdict else []
-                tmparr.extend(
-                        [u for u in react['users'] if u!=self.myid])
+                tmparr.extend( [u for u in react['users'] if u!=self.myid] )
                 reactdict[name] = tmparr
 
     def resultGet(self):
@@ -207,7 +244,9 @@ class VOTE:
         if not self.private:
             self.resultGetProcess(self.channel,self.ts,reactdict)
         else:            
-            pool = [ MP.Process(target=self.resultGetProcess,args=(self.members[mem]['channel'],self.members[mem]['ts'],reactdict)) for mem in dict(self.members) ]
+            pool = [ MP.Process(target=self.resultGetProcess,
+                args=(self.members[mem]['channel'], self.members[mem]['ts'], reactdict)) 
+                for mem in dict(self.members) ]
             for p in pool : p.start()
             for p in pool : p.join()
 
@@ -223,60 +262,60 @@ class VOTE:
 
     def voteShow(self,status="*Now Voting*",emojis=[],needall=False,fix=False,**kwargs):
         if not self.start :
-            raise ValueError("Vote has not started yet")
-        text = ""
-        if fix !=2:#delete method
-            text = self.optionParse(status,**kwargs)
-            self.messagePost(text,fix,channel=self.channel,ts=self.ts)
+            text = self.optionParse("*Preview*")
+            self.messagePost(text)
+            return
+        
+        #delete method
+        if fix == 2: #needall = True
+            self.multiMemberPost("",[],2)
+            return 
+            
+        text = self.optionParse(status,**kwargs)
+        self.messagePost(text,fix,channel=self.channel,ts=self.ts)
         if not self.private:
-            for e in emojis:
-                self.emojiAdd(e,channel=self.channel,timestamp=self.ts)
+            self.emojisAdd(emojis,channel=self.channel,timestamp=self.ts)
+
         if needall and self.private:
-            pool = [ MP.Process(target=self.membersPostProcess,args=(mem,text,emojis,fix))for mem in dict(self.members) ]
-            for p in pool : p.start()
-            for p in pool : p.join()
-            #for mem in self.members:
-            #    self.membersPostProcess(mem,text,emojis=emojis,fix=fix)
+            self.multiMemberPost(text,emojis,fix)
 
-    def membersPostProcess(self,mem,text="",emojis=[],fix=0,needrecord=False):
-        if needrecord and fix:
-            raise ValueError("cannot fix and record together")
-        if needrecord and not text.strip():
-            raise ValueError("cannot record empty text")
-        if fix==2 and (text or emojis ):
-            raise ValueError("delete method cannot be done")
-
+    def membersPostProcess(self,mem,text="",emojis=[],fix=False,needrecord=False):
+        #if fix != 0 needrecord cannot be True
         if needrecord:
             rep = self.slack.api_call("im.open",user=mem)
             if rep['ok']:
                 self.members[mem] = {"channel":rep['channel']['id']}
+            else :
+                del self.members[mem]
+                return 
         message = self.messagePost(text,fix,**self.members[mem])
         if needrecord:
             tmpdict = self.members[mem]
             tmpdict['ts' ] = message['ts']
             self.members[mem] = tmpdict
-        for e in emojis:
-            self.emojiAdd(e,**self.members[mem])
-    
-    def messageRecord(self,text="",emojis=[]): # include emoji and needall=True
-        if not text.strip():
-            raise ValueError("cannot record empty text")
+        self.emojisAdd(emojis,**self.members[mem])
 
+    def multiMemberPost(self,text="",emojis=[],fix=False,needrecord=False):
+        pool = [ MP.Process(target=self.membersPostProcess,
+                            args  =(mem,text,emojis,fix,needrecord))
+                for mem in dict(self.members) ]
+        for p in pool : p.start()
+        for p in pool : p.join ()
+    
+    # record ts and post
+    def messageRecord(self,text="",emojis=[]): # include emoji and needall=True
         message      = self.messagePost(text)
         self.ts      = message['ts']
         self.channel = self.payload['channel']
         if not self.private:
-            for e in emojis: 
-                self.emojiAdd(e,channel=self.channel,ts=self.ts)
+            self.emojisAdd(emojis,channel=self.channel,ts=self.ts)
 
         #for private
         if self.private:
             members = self.slack.api_call("channels.info",channel=self.channel)['channel']['members']
-            pool = [ MP.Process(target=self.membersPostProcess,args=(mem,text,emojis,False,True))for mem in members ]
-            for p in pool : p.start()
-            for p in pool : p.join()
-            #for mem in self.members:
-            #    self.membersPostProcess(mem,text,emojis=emojis,needrecord=True)
+            for mem in members:
+                self.members[mem] =  {}
+            self.multiMemberPost(text,emojis,needrecord=True)
     
     def voteStart(self):
         if not self.title:
@@ -286,37 +325,41 @@ class VOTE:
         self.start=True
         if self.type == "":
             raise ValueError("Which type of Vote ? who,yesno,option")
-        elif self.type == "who":
-            self.optionAdd("me","me")
-        elif self.type == "yesno":
-            self.optionAdd("yes","yes")
-            self.optionAdd("no","no")
-            self.optionAdd("ok","ok")
 
         self.timestart = DT.now()
         text = self.optionParse("*Vote Start!!*")
         self.messageRecord(text,[e['emoji'] for e in self.options])
     
     def voteEnd(self):
-        self.timeend = DT.now()
-        self.voteShow("*Result*",renew=True,showcount=True,showpeople=not self.private)
+        if not self.start :
+            self.messagePost("Clear vote")
+            self.init()
+            return 
+        if len(self.options) == 0:
+            self.messagePost("No option set")
+            self.init()
+            return 
+
+        self.voteShow("*Result*",renew=True,showcount=True,showpeople=True)
         if self.private:
             self.voteShow("*delete*",fix=2,needall=True)
+        if not self.timeend:
+            self.timeend = DT.now()
 
         voteresult = {
-                "title":self.title,
+                "type"   :self.type,
                 "options":self.options,
-                "type":self.type,
-                 "private":self.private,
-                 "onlyone":self.onlyone,
-                 "noadd":self.noadd,
-                "ts":self.ts,
+                "title"  :self.title,
+                "ts"     :self.ts,
                 "channel":self.channel,
+                 "private"  :self.private,
+                 "noadd"    :self.noadd,
+                 "onlyone"  :self.onlyone,
                 "peoplevote":self.peoplevote,
-                "timestart":self.timestart,
-                "timeend":self.timeend}
+                "timestart" :self.timestart,
+                "timeend"   :self.timeend}
 
-        #open("voteLog","w+").write(json.dumps(voteresult))
+        #open("voteLog","w+").write(json.dumps(voteresult)+"\n")
         print("LOG:  "+str(voteresult))
         self.init()
 
@@ -342,7 +385,7 @@ class VOTE:
                     'text' : "vote end",
                     'ts' : self.ts }
             self.threadend.value = False
-            self.main(voteEnd)
+            self.main(voteend)
 
         if datadict['type'] == "reaction_added" :
             self.peoplevoteCount(datadict['reaction'],datadict['item'],datadict['user'])
@@ -357,19 +400,22 @@ class VOTE:
         text = datadict['text']
         
         if text.startswith("vote "):
-            if datadict['channel'].startswith("D"):
+            if not datadict['channel'].startswith("C"):
                 self.messagePost("Error ! Use it at channel")
                 return
+            if self.channel and datadict['channel'] != self.channel:
+                self.messagePost("Error ! Use it at same channel")
+                return
+
             try:
                 datarr = shlex.split(text)
             except ValueError as er:
                 self.messagePost(er.__str__())
                 return 
+
             print(datarr)
             index = 1 
-            while True:
-                if index == len(datarr):
-                    break;
+            while index < len(datarr):
                 data = datarr[index]
 
                 try:
@@ -392,8 +438,9 @@ class VOTE:
                         index+=1
                     elif data == "show":
                         if self.private:
-                            raise ValueError("vote cannot show during the vote because type = private")
-                        self.voteShow(renew=True,showcount=True)
+                            self.voteShow()
+                        else:
+                            self.voteShow(renew=True,showcount=True)
                     elif data == "end":
                         self.voteEnd()
                         break;
@@ -412,7 +459,7 @@ class VOTE:
             #AC react
             if self.private or not self.start:
                 self.payload['timestamp'] = datadict['ts']
-                self.emojiAdd(self.emojidict['AC'])
+                self.emojisAdd([self.emojidict['AC']])
         elif text == 'vote':
             text  = "vote command -> just use messages to vote"
             text += """
@@ -440,7 +487,7 @@ Example:          # the command can be chained
 vote type option add Taipei
 vote title "Where we want to go?"
 vote start
-vote add Tainan
+vote add "Tainan"
 ```
 """
             self.messagePost(text)

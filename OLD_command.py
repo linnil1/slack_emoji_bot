@@ -13,9 +13,7 @@ import json
 import time
 from multiprocessing import Process,Queue
 
-from images2gif import writeGif
-from PIL import Image
-import os
+import oldgif_util
 import math
 
 
@@ -103,26 +101,19 @@ class OLD_command:
             raise ValueError("time number too big")
         return giftime
 
-
-
     def gifMake(self,data):
         text = self.imageUpDown(data)
         giftime = self.gifTime(text)
         onlyemoji = re.findall(r":(.*?):",text)
         if len(onlyemoji) < 2:
             raise ValueError("Need at least two words")
-        hashname = "oldgif_"+str(math.floor(giftime*1000))+"_"+str(hash(str(onlyemoji)))
+        if len(onlyemoji) > 100:
+            raise ValueError("too many words")
+        giftime = math.floor(giftime*1000)
+        hashname = "oldgif_"+str(giftime)+"_"+str(hash(str(onlyemoji)))
 
         if not os.path.isfile(self.dir+hashname):
-            #create a gif without transparent
-            images = []
-            for name in onlyemoji:
-                img = Image.open(self.dir+name)
-                img.load() # required for png.split()
-                background = Image.new("RGB", img.size, (255, 255, 255))
-                background.paste(img, mask=img.split()[3]) 
-                images.append(background)
-            writeGif(self.dir+hashname, images, duration=giftime)
+            oldgif_util.gifGet(onlyemoji,giftime,self.dir,hashname)
             self.custom.emoji.upload(self.dir,hashname)
 
         print("giflen = "+str(len(onlyemoji)))
@@ -209,7 +200,7 @@ class OLD_command:
 `oldset [aWord] [newName]  ` *set alias for 小篆emoji*
 `oldhelp                   ` *get help for the usage of this module*
 `oldtime (time)            ` *show date and time by 小篆emoji*
-`oldgif (-t time) [text]   ` *combine 小篆emojis into gif*
+`oldgif (-t second=0.1) [text]` *combine 小篆emojis into gif*
 `oldgifreact (floor=-1) [text]` *give reactions of 小篆emoji gif to specific floor message*
 """.strip()
             

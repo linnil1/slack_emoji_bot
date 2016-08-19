@@ -40,12 +40,12 @@ You can see detail BY oldhelp
 
   If we cannot find the word, it doesn't ouput anything
 
-  For example: 黑 is _e9_bb_91 and the 6characters is "e9bb91"
-  
+  For example: 黑 is "_e9_bb_91" and the 6characters is "e9bb91"
+
   `oldask e9bb91`
 
 * oldreact
-  
+
   Usage: `oldreact (floor=-1) [text]` **give reactions of 小篆emoji to specific floor message**
 
   If we cannot find the same word of 小篆, it will be ignore
@@ -118,9 +118,9 @@ You can see detail BY oldhelp
 
 * oldgif 
 
-  Usage: `oldgif (-t delay=0.1) [text]` **combine 小篆emojis into gif**
+  Usage: `oldgif (-t second=0.1) [text]` **combine 小篆emojis into gif**
 
-  delay is float and it's range is 0<= delay <= 10 (second)
+  delay is float and it's range is 0<=delay<=10(second)
 
   For example:
 
