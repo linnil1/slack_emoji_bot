@@ -86,12 +86,12 @@ class OLD_command:
             emoji_str += worddict[word]
         return emoji_str
 
-    def gifTime(self,text): #default 0.2s
+    def gifTime(self,text): #default 0.5s
         t = re.findall(r"^-t\s+(.*?)\s+",text)
         if len(t)>1:
             raise ValueError("Arguments Error")
         elif len(t) == 0:
-            return 0.2
+            return 0.5
         try:
             giftime = float(t[0])
             assert(giftime>=0)
@@ -200,7 +200,7 @@ class OLD_command:
 `oldset [aWord] [newName]  ` *set alias for 小篆emoji*
 `oldhelp                   ` *get help for the usage of this module*
 `oldtime (time)            ` *show date and time by 小篆emoji*
-`oldgif (-t second=0.1) [text]` *combine 小篆emojis into gif*
+`oldgif (-t second=0.5) [text]` *combine 小篆emojis into gif*
 `oldgifreact (floor=-1) [text]` *give reactions of 小篆emoji gif to specific floor message*
 """.strip()
             

@@ -23,7 +23,7 @@ class ntuosc:
             print("Start")
             while True:
                 data = self.slack.rtm_read()
-                if data and data[0]['type'] not in ['user_typing','reconnect_url','pref_change','presence_change']:
+                if data and data[0]['type'] not in ['user_typing','reconnect_url','pref_change','presence_change','emoji_changed']:
                     print(data)
                 try:
                     self.commandSelect(data[0] if data else {"type":None})

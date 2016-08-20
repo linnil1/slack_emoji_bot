@@ -19,7 +19,7 @@ There are some command :
 	* oldset [a_word] [new_name]
 	* oldask [6characters]
 	* oldhelp [funcs...]
-	* oldgif (-t second=0.1) [text]
+	* oldgif (-t second=0.5) [text]
 	* oldgifreact (floor=-1) [text]
 	
     You can see it at oldhelp.md

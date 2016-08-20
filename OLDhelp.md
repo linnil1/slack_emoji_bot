@@ -118,7 +118,7 @@ You can see detail BY oldhelp
 
 * oldgif 
 
-  Usage: `oldgif (-t second=0.1) [text]` **combine 小篆emojis into gif**
+  Usage: `oldgif (-t second=0.5) [text]` **combine 小篆emojis into gif**
 
   delay is float and it's range is 0<=delay<=10(second)
 
