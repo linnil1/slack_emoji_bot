@@ -4,4 +4,3 @@ lxml
 python-dateutil
 simple-crypt
 numpy
-Pillow

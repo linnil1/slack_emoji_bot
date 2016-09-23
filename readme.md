@@ -36,6 +36,10 @@ There are some command :
     * vote xxx oooo xxx
     * votehelp
 
+ * 社課 module
+
+	 Output the class this time
+
 The usage is write inside the command
 
 Usually, you can type xxhelp for help
