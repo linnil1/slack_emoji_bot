@@ -110,7 +110,7 @@ class OLD_command:
         if len(onlyemoji) > 100:
             raise ValueError("too many words")
         giftime = math.floor(giftime*1000)
-        hashname = "oldgif_"+str(giftime)+"_"+str(hash(str(onlyemoji)))
+        hashname = "oldgif_"+str(giftime)+"_"+str(abs(hash(str(onlyemoji))))
 
         if not os.path.isfile(self.dir+hashname):
             oldgif_util.gifGet(onlyemoji,giftime,self.dir,hashname)
