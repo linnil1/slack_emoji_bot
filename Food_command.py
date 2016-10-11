@@ -49,6 +49,20 @@ class Midnight:
                 jieba.del_word(word[1:])
         self.init()
 
+        #find midnight channel
+        rep = self.slack.api_call("channels.list")
+        self.channel_id = ""
+        for c in rep['channels']:
+            if c['name'].lower() == 'midnight':
+                self.channel_id = c['id']
+                break;
+
+        if not self.channel_id:
+            print("no midnight channel")
+            raise ValueError
+
+        print("init done")
+
     def init(self):
         # cut
         self.imgs = json.loads(open("midnight.json").read())
@@ -61,7 +75,6 @@ class Midnight:
         for img in self.imgs:
             for jiba in img['jieba']:
                 self.jieba_dic[jiba] = img
-        print("init done")
 
     def wordSearch(self,text):
         textarr = jieba.lcut(text)

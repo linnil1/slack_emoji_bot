@@ -40,6 +40,17 @@ There are some command :
 
 	 Output the class this time
 
+	 Just type "社課"
+
+ * Food module
+ 	
+	Use this module to find food on midnight channel
+	**(you should change the code to your midnight channel id)**
+
+    * food [foodname]
+    * foodadd [foodname] 
+    * fooddel [foodname] 
+
 The usage is write inside the command
 
 Usually, you can type xxhelp for help

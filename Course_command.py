@@ -63,7 +63,7 @@ class Course:
         return text
 
     def main(self,datadict):
-        if not datadict['type'] == 'message' or 'subtype' in datadict:
+        if not datadict['type'] == 'message' or ('subtype' in datadict and datadict['subtype'] != "bot_message"):
             return 
         if datadict['text'] == "社課":
             self.courseAll() # sync every time
