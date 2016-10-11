@@ -1,137 +1,143 @@
 <!DOCTYPE html>
 <html>
+
 <head>
-	<title>NTUOSC_POFB</title>
-	<meta charset="UTF-8">
-	<meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>NTUOSC_POFB</title>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
 
-	<script src="https://code.jquery.com/jquery-3.1.1.min.js"></script>
-	<link rel="stylesheet" href="https://maxcdn.bootstrapcdn.com/bootstrap/3.3.7/css/bootstrap.min.css" integrity="sha384-BVYiiSIFeK1dGmJRAkycuHAHRg32OmUcww7on3RYdg4Va+PmSTsz/K68vbdEjh4u" crossorigin="anonymous">
-	<script src="https://maxcdn.bootstrapcdn.com/bootstrap/3.3.7/js/bootstrap.min.js" integrity="sha384-Tc5IQib027qvyjSMfHjOMaLkfuWVxZxUPnCJA7l2mCWNIpG9mGCD8wGNIcPD7Txa" crossorigin="anonymous"></script>
+  <script src="https://code.jquery.com/jquery-3.1.1.min.js"></script>
+  <link rel="stylesheet" href="https://maxcdn.bootstrapcdn.com/bootstrap/3.3.7/css/bootstrap.min.css" integrity="sha384-BVYiiSIFeK1dGmJRAkycuHAHRg32OmUcww7on3RYdg4Va+PmSTsz/K68vbdEjh4u" crossorigin="anonymous">
+  <script src="https://maxcdn.bootstrapcdn.com/bootstrap/3.3.7/js/bootstrap.min.js" integrity="sha384-Tc5IQib027qvyjSMfHjOMaLkfuWVxZxUPnCJA7l2mCWNIpG9mGCD8wGNIcPD7Txa" crossorigin="anonymous"></script>
 
-	<link rel="stylesheet" href="https://maxcdn.bootstrapcdn.com/font-awesome/4.6.3/css/font-awesome.min.css">
-	<link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/bootstrap-social/5.0.0/bootstrap-social.min.css">
-	<script>
-	  // Load the SDK asynchronously
-	  (function(d, s, id) {
-		var js, fjs = d.getElementsByTagName(s)[0];
-		if (d.getElementById(id)) return;
-		js = d.createElement(s); js.id = id;
-		js.src = "//connect.facebook.net/en_US/sdk.js";
-		fjs.parentNode.insertBefore(js, fjs);
-	  }(document, 'script', 'facebook-jssdk'));
-	</script>
+  <link rel="stylesheet" href="https://maxcdn.bootstrapcdn.com/font-awesome/4.6.3/css/font-awesome.min.css">
+  <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/bootstrap-social/5.0.0/bootstrap-social.min.css">
+  <script>
+    // Load the SDK asynchronously
+    (function(d, s, id) {
+      var js, fjs = d.getElementsByTagName(s)[0];
+      if (d.getElementById(id)) return;
+      js = d.createElement(s);
+      js.id = id;
+      js.src = "//connect.facebook.net/en_US/sdk.js";
+      fjs.parentNode.insertBefore(js, fjs);
+    }(document, 'script', 'facebook-jssdk'));
+  </script>
 </head>
+
 <body>
 
-<div class="container">
-  <div class="row">
-  <div class="col-sm-6 col-sm-offset-3">
+  <div class="container">
+    <div class="row">
+      <div class="col-sm-6 col-sm-offset-3">
 
-	<h2> Post To NTUOSC FB </h2>
-  	<a class="btn btn-block btn-social btn-facebook" style="text-align:center" onclick="FBLogin()" >
-  	     <span class="fa fa-facebook"></span> login fb and use this app
-	</a>
+        <h2> Post To NTUOSC FB </h2>
+        <a class="btn btn-block btn-social btn-facebook" style="text-align:center" onclick="FBLogin()">
+          <span class="fa fa-facebook"></span> login fb and use this app
+        </a>
 
-	<div class="panel panel-default">
-		<div class="panel-heading">
-			<h3 class="panel-title">FB Status</h3>
-		</div>
-	  <div class="panel-body" id="status"></div>
-	</div>
+        <div class="panel panel-default">
+          <div class="panel-heading">
+            <h3 class="panel-title">FB Status</h3>
+          </div>
+          <div class="panel-body" id="status"></div>
+        </div>
 
-	<h3> Your post text </h3>
-	<pre id="pre">
-	</pre>
+        <h3> Your post text </h3>
+        <pre id="pre"></pre>
 
-	<div id="panel"></div>
+        <div id="panel"></div>
+      </div>
+    </div>
   </div>
-  </div>
-</div>
 
 
-<script>
-  // This is called with the results from from FB.getLoginStatus().
-  function statusChangeCallback(response) {
-    console.log(response);
-    if (response.status === 'connected') {
-      login();
-    } else if (response.status === 'not_authorized') {
-      document.getElementById('status').innerHTML = 'Please log ' + 'into this app.';
-    } else {
-      document.getElementById('status').innerHTML = 'Please log ' + 'into Facebook.';
+  <script>
+    // This is called with the results from from FB.getLoginStatus().
+    function statusChangeCallback(response) {
+      console.log(response);
+      if (response.status === 'connected') {
+        login();
+      } else if (response.status === 'not_authorized') {
+        document.getElementById('status').innerHTML = 'Please log ' + 'into this app.';
+      } else {
+        document.getElementById('status').innerHTML = 'Please log ' + 'into Facebook.';
+      }
     }
-  }
 
-  window.fbAsyncInit = function() {
-	  FB.init({
-		appId      : '883757508423544',
-		cookie     : true,
-		xfbml      : true,
-		version    : 'v2.8'
-	  });
+    window.fbAsyncInit = function() {
+      FB.init({
+        appId: '883757508423544',
+        cookie: true,
+        xfbml: true,
+        version: 'v2.8'
+      });
 
 
-	  FB.getLoginStatus(function(response) {
-		statusChangeCallback(response);
-		  });
-  };
+      FB.getLoginStatus(function(response) {
+        statusChangeCallback(response);
+      });
+    };
 
-  // my func
-var FBLogin = function(){
-	FB.login(function(response) {
-		statusChangeCallback(response)
-	}, {
-		    scope: 'publish_actions', 
-			return_scopes: true
-	});
-}
+    // my func
+    var FBLogin = function() {
+      FB.login(function(response) {
+        statusChangeCallback(response)
+      }, {
+        scope: 'publish_actions',
+        return_scopes: true
+      });
+    }
 
-var alertPop = function(aclass,atext){
-	jQuery('<div/>', {
-		class: 'alert '+aclass,
-		role: "alert",
-		text: atext,
-	}).appendTo('#panel');
-}
+    var alertPop = function(aclass, atext) {
+      jQuery('<div/>', {
+        class: 'alert ' + aclass,
+        role: "alert",
+        text: atext,
+      }).appendTo('#panel');
+    }
 
-var getsearch = function(){
-	var parser = document.createElement('a');
-	parser.href = document.URL
-	return decodeURIComponent(parser.search.slice(1))
-}
-$("#pre").text(getsearch())
+    var getsearch = function() {
+      var parser = document.createElement('a');
+      parser.href = document.URL
+      return decodeURIComponent(parser.search.slice(1))
+    }
+    $("#pre").text(getsearch())
 
-var postMessage = function(){
-	FB.api('369584506476766/feed',"post",{'message':$("#pre").text()}, function(response) {
-	  console.log(response)
-	  if(response.error)
-		  alertPop("alert-danger",response.error.message)
-	  else
-	  {
-		  alertPop("alert-success","Your data has posted")
-		  FB.api(response.id,'GET',{'fields':'permalink_url'}, function(res) {
-			$("div.alert").append("<br />")
-			jQuery('<a/>', {
-				text: res.permalink_url,
-				href: res.permalink_url
-			}).appendTo('div.alert');
-			})
-	  }
-		  
-		
-	})
-}
+    var postMessage = function() {
+      FB.api('369584506476766/feed', "post", {
+        'message': $("#pre").text()
+      }, function(response) {
+        console.log(response)
+        if (response.error)
+          alertPop("alert-danger", response.error.message)
+        else {
+          alertPop("alert-success", "Your data has posted")
+          FB.api(response.id, 'GET', {
+            'fields': 'permalink_url'
+          }, function(res) {
+            $("div.alert").append("<br />")
+            jQuery('<a/>', {
+              text: res.permalink_url,
+              href: res.permalink_url
+            }).appendTo('div.alert');
+          })
+        }
 
-  function login() {
-    console.log('Welcome!  Fetching your information.... ');
-    FB.api('/me', function(response) {
-      console.log('Successful login for: ' + response.name);
-      document.getElementById('status').innerHTML = 'Thanks for logging in, ' + response.name + '!';
 
-	  postMessage()
-    });
-  }
-</script>
+      })
+    }
+
+    function login() {
+      console.log('Welcome!  Fetching your information.... ');
+      FB.api('/me', function(response) {
+        console.log('Successful login for: ' + response.name);
+        document.getElementById('status').innerHTML = 'Thanks for logging in, ' + response.name + '!';
+
+        postMessage()
+      });
+    }
+  </script>
 </body>
+
 </html>

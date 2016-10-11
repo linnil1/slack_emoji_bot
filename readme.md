@@ -45,11 +45,19 @@ There are some command :
  * Food module
  	
 	Use this module to find food on midnight channel
-	**(you should change the code to your midnight channel id)**
+	**(it will fail if you don't have midnight channel)** 
 
     * food [foodname]
     * foodadd [foodname] 
     * fooddel [foodname] 
+
+ * poFB module
+ 
+   this module will help you post your text on slack to ntuosc fb
+
+   I will obtain "publish actions" **only** for the permission of post message on NTUOSC's FB
+
+   * poFB [text]
 
 The usage is write inside the command
 

@@ -5,6 +5,7 @@ from KXGEN_command import KXGEN
 from VOTE_command import VOTE
 from Course_command import Course 
 from Food_command import Midnight 
+from POFB_command import POFB
 import password_crypt 
 
 import time
@@ -21,6 +22,7 @@ class ntuosc:
         self.vote  = VOTE       (self.slack,self.custom)
         self.course= Course     (self.slack,self.custom)
         self.food  = Midnight   (self.slack,self.custom)
+        self.pofb  = POFB       (self.slack,self.custom)
 
     def startRTM(self):
         if self.slack.rtm_connect():
@@ -58,6 +60,7 @@ class ntuosc:
         self.vote  .main(data)
         self.course.main(data)
         self.food  .main(data)
+        self.pofb  .main(data)
 
 
 ntu =  ntuosc()

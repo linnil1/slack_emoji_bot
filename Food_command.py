@@ -101,7 +101,7 @@ class Midnight:
         open("midnight.json","w").write(json.dumps(self.imgs))
 
     def main(self,datadict):
-        if datadict['type'] == 'message' and datadict.get('subtype') == "file_share" and datadict.get('channel') == "C045B1Y37":
+        if datadict['type'] == 'message' and datadict.get('subtype') == "file_share" and datadict.get('channel') == self.channel_id :
             self.imageAdd(datadict['file'])
         if not datadict['type'] == 'message' or 'subtype' in datadict:
             return 
