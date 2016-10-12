@@ -59,10 +59,18 @@ There are some command :
 
    * poFB [text]
 
+
+ * ASK module
+ 	
+	Get the answer of your text
+
+	Power by WolframAlpha 
+
+    * ASK [text]
+
 The usage is write inside the command
 
 Usually, you can type xxhelp for help
-
 
 ## license
 MIT ?

@@ -6,6 +6,7 @@ from VOTE_command import VOTE
 from Course_command import Course 
 from Food_command import Midnight 
 from POFB_command import POFB
+from ASK_command import ASK_wolfram
 import password_crypt 
 
 import time
@@ -23,6 +24,7 @@ class ntuosc:
         self.course= Course     (self.slack,self.custom)
         self.food  = Midnight   (self.slack,self.custom)
         self.pofb  = POFB       (self.slack,self.custom)
+        self.ASK   = ASK_wolfram(self.slack,self.custom)
 
     def startRTM(self):
         if self.slack.rtm_connect():
@@ -61,6 +63,7 @@ class ntuosc:
         self.course.main(data)
         self.food  .main(data)
         self.pofb  .main(data)
+        self.ASK   .main(data)
 
 
 ntu =  ntuosc()

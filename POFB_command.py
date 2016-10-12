@@ -13,6 +13,6 @@ class POFB:
             self.slack.api_call("chat.postMessage",**{
                 "text": "<"+self.poFBurl+"?"+urllib.parse.quote(text)+"|Post it by this link>",
                 "username": "FBposter",
-                "icon_emoji": "_e8_bd_89",
+                "icon_emoji": ":_e8_bd_89:",
                 "channel": datadict['channel']})
 
