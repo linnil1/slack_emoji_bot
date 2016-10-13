@@ -7,10 +7,14 @@ class ASK_wolfram:
     def __init__(self,slack,custom):
         self.slack = slack
         self.custom = custom
-        self.appid = "G9739J-Q39LE43565"
+        self.appid = self.custom.wolfram_app
 
     def answerGet(self,text):
-        rep = requests.get("http://api.wolframalpha.com/v2/query?appid="+self.appid+"&input="+urllib.parse.quote(text)+"&format=image,plaintext")
+        rep = requests.get("http://api.wolframalpha.com/v2/query",
+            params= {
+                "appid":self.appid,
+                "input":text,
+                "format":"image,plaintext"})
 
         xml = etree.fromstring(rep.text.encode("UTF8"))
 
@@ -53,7 +57,8 @@ class ASK_wolfram:
 
             answer = self.answerGet(text)
             if answer:
+                for i,newurl in enumerate(self.custom.imgur.imagesUpload([url['image_url'] for url in answer])):
+                    answer[i]['image_url'] = newurl
                 self.slack.api_call("chat.postMessage",**payload,attachments=answer)
             else:
                 self.slack.api_call("chat.postMessage",**payload,text="False")
-

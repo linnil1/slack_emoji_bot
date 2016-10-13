@@ -10,7 +10,11 @@ def passwordInit():
             "email":input("email: ").strip(),
             "password":getpass("password: ").strip(),
             "token":getpass("token: ").strip(),
-            "testtoken":getpass("testtoken(Option): ").strip()}
+            "testtoken":getpass("testtoken(Option): ").strip(),
+            "imgur_id":input("imgur_id: ").strip(),
+            "imgur_secret":getpass("imgur_serect: ").strip(),
+            "wolfram_app":getpass("wolfram_app: ").strip()
+            }
 
     privacytext = json.dumps(privacy)
     return  encrypt(password,privacytext)

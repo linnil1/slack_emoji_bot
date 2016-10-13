@@ -5,6 +5,28 @@ import json
 import requests
 from bs4 import BeautifulSoup
 from slackclient import SlackClient
+from imgurpython import ImgurClient
+from multiprocessing import Pool
+
+class Imgur:
+    def __init__(self,client_id,client_secret):
+        self.client = ImgurClient(client_id, client_secret)
+
+    def imagesUpload(self,urls):
+        """
+        for url in urls:
+            client.upload_from_url(url)
+        """
+
+        pool = Pool(len(urls))
+        return pool.map(self.imageUpload,urls)
+
+    def imageUpload(self,url):
+        try:
+            return self.client.upload_from_url(url)['link']
+        except:
+            return url
+
 
 class BaseFunc:
     def crumbGet(self,rep,spec=None):
@@ -126,6 +148,9 @@ class Customize(BaseFunc):
         email     = privacy['email'    ]   
         password  = privacy['password' ]
         testtoken = privacy['testtoken']
+        client_id = privacy['imgur_id' ]
+        client_secret = privacy['imgur_secret']
+        self.wolfram_app = privacy['wolfram_app']
 
         #prelogin
         self.baseurl = "https://{}.slack.com".format(team_name)
@@ -151,6 +176,7 @@ class Customize(BaseFunc):
         #function
         self.emoji = Emoji(self.baseurl,se.cookies)
         self.slackbot = Slackbot(testtoken)
+        self.imgur = Imgur(client_id,client_secret)
 
 #a = Customize(json.loads(open("privacy.json").read()))
 
