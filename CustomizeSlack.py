@@ -142,41 +142,44 @@ class Slackbot:
             return self.upload(element)
 
 class Customize(BaseFunc):
-    def __init__(self,privacy):
+    def __init__(self,privacy,login=True):
         #get data from privacy
-        team_name = privacy['team_name']
-        email     = privacy['email'    ]   
-        password  = privacy['password' ]
         testtoken = privacy['testtoken']
         client_id = privacy['imgur_id' ]
         client_secret = privacy['imgur_secret']
-        self.wolfram_app = privacy['wolfram_app']
 
-        #prelogin
-        self.baseurl = "https://{}.slack.com".format(team_name)
-        self.url = self.baseurl+"/customize"
-        se,rep = self.sessionStart()
-        
-        #login
-        data = {
-            'crumb': self.crumbGet(rep),
-            'email': email,
-            'password': password,
-            'redir': "/customize",
-            'remember': "on",
-            'signin': 1
-        }
-        rep = se.post(self.baseurl,data=data, allow_redirects=True)
-        rep.raise_for_status()
+        if login:
+            #prelogin
+            team_name = privacy['team_name']
+            email     = privacy['email'    ]   
+            password  = privacy['password' ]
+            self.baseurl = "https://{}.slack.com".format(team_name)
+            self.url = self.baseurl+"/customize"
+            se,rep = self.sessionStart()
+            
+            #login
+            data = {
+                'crumb': self.crumbGet(rep),
+                'email': email,
+                'password': password,
+                'redir': "/customize",
+                'remember': "on",
+                'signin': 1
+            }
+            rep = se.post(self.baseurl,data=data, allow_redirects=True)
+            rep.raise_for_status()
 
-        #stdout not essentional
-        soup = BeautifulSoup(rep.text,"lxml").find_all("h1")
-        print("team_name = "+soup[0].text.strip())
+            #stdout not essentional
+            soup = BeautifulSoup(rep.text,"lxml").find_all("h1")
+            print("team_name = "+soup[0].text.strip())
+
+            #function
+            self.emoji = Emoji(self.baseurl,se.cookies)
 
         #function
-        self.emoji = Emoji(self.baseurl,se.cookies)
         self.slackbot = Slackbot(testtoken)
         self.imgur = Imgur(client_id,client_secret)
+        self.wolfram_app = privacy['wolfram_app']
 
 #a = Customize(json.loads(open("privacy.json").read()))
 
