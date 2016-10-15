@@ -6,7 +6,7 @@ import dateutil.parser
 import datetime
 from pprint import pprint
 
-class Course:
+class COURSE:
     def __init__(self,slack,custom):
         self.slack = slack
         self.coursedata = []

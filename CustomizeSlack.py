@@ -17,6 +17,8 @@ class Imgur:
         for url in urls:
             client.upload_from_url(url)
         """
+        if not urls:
+            return urls
 
         pool = Pool(len(urls))
         return pool.map(self.imageUpload,urls)

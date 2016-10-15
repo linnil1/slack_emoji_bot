@@ -1,16 +1,14 @@
 from slackclient import SlackClient
 from CustomizeSlack import Customize
-from OLD_command import OLD_command
-from KXGEN_command import KXGEN
-from VOTE_command import VOTE
-from Course_command import Course 
-from Food_command import Midnight 
-from POFB_command import POFB
-from ASK_command import ASK_wolfram
 import password_crypt 
 
-import time
 import sys
+import os
+import re
+import importlib
+sys.path.insert(0, './modules/')
+
+import time
 
 class ntuosc:
     def __init__(self):
@@ -18,13 +16,13 @@ class ntuosc:
         privacy = password_crypt.logIn()
         self.custom= Customize(privacy)
         self.slack = SlackClient(privacy['token'])
-        self.old   = OLD_command(self.slack,self.custom)
-        self.kxgen = KXGEN      (self.slack,self.custom)
-        self.vote  = VOTE       (self.slack,self.custom)
-        self.course= Course     (self.slack,self.custom)
-        self.food  = Midnight   (self.slack,self.custom)
-        self.pofb  = POFB       (self.slack,self.custom)
-        self.ASK   = ASK_wolfram(self.slack,self.custom)
+        self.modules = []
+
+        modules = [ c for c in os.listdir("modules") if c.endswith("_command.py")]
+        for command in modules:
+            com = importlib.import_module(command[:-3])
+            c = re.findall(r"(\w+)_command\.py",command)[0]
+            self.modules.append( getattr(com,c)(self.slack,self.custom) )
 
     def startRTM(self):
         if self.slack.rtm_connect():
@@ -57,13 +55,8 @@ class ntuosc:
 
 
     def commandSelect(self,data):
-        self.old   .main(data)
-        self.kxgen .main(data)
-        self.vote  .main(data)
-        self.course.main(data)
-        self.food  .main(data)
-        self.pofb  .main(data)
-        self.ASK   .main(data)
+        for mod in self.modules:
+            mod.main(data)
 
 
 ntu =  ntuosc()

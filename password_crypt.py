@@ -20,15 +20,16 @@ def passwordInit():
     return  encrypt(password,privacytext)
 
 def logIn():
-    file_exist = os.path.isfile("privacy.json")
+    filepath = "data/privacy.json"
+    file_exist = os.path.isfile(filepath)
     if file_exist :
         print("File exist")
-        hashdata = open("privacy.json","rb").read()
+        hashdata = open(filepath,"rb").read()
     else:
         print("File no exist")
         hashdata = passwordInit()
         print("OK")
-        open("privacy.json","wb").write(hashdata)
+        open(filepath,"wb").write(hashdata)
 
     password = getpass("Enter Master password: ")
     jsondata =  decrypt(password,hashdata).decode("utf8")

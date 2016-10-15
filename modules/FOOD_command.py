@@ -3,8 +3,9 @@ from pprint import pprint
 import json
 import jieba
 import re
+import os
 
-class Midnight:
+class FOOD:
     def pageParse(t=0):
         custom = SlackClient("")
         nowpage = 1
@@ -31,25 +32,15 @@ class Midnight:
         open("midnight.json","w").write(json.dumps(imgs))
 
     def __init__(self,slack,custom):
-        try: open("midnight.json")
-        except: print("no json data")
         self.slack = slack
         self.custom = custom
-        self.img = []
-        jieba.set_dictionary('dict.txt.big')
-        jieba.initialize()
 
-        # add and del words
-        try: open("words.jb")
-        except: open("words.jb","w")
-        for word in list(filter(None,open("words.jb").read().split('\n'))):
-            if word[0] == '+' : 
-                jieba.add_word(word[1:])
-            elif word[0] == '-' : 
-                jieba.del_word(word[1:])
-        self.init()
+        self.food_dir = "data/midnight.json"
+        self.food_dic = "data/dict.txt.big"
+        self.food_addir = "data/words.jb"
 
         #find midnight channel
+        self.nochannel = False
         rep = self.slack.api_call("channels.list")
         self.channel_id = ""
         for c in rep['channels']:
@@ -57,18 +48,33 @@ class Midnight:
                 self.channel_id = c['id']
                 break;
 
-        if not self.channel_id:
-            print("no midnight channel")
-            raise ValueError
+        jieba.set_dictionary(self.food_dic)
+        jieba.initialize()
 
+        # add and del words
+        if os.path.exists(self.food_addir):
+            for word in list(filter(None,open(self.food_addir).read().split('\n'))):
+                if word[0] == '+' : 
+                    jieba.add_word(word[1:])
+                elif word[0] == '-' : 
+                    jieba.del_word(word[1:])
+
+        if not self.channel_id:
+            print("no midnight channel! Restart when midnight channel can use")
+            self.nochannel = True
+            return
+
+        self.init()
         print("init done")
 
     def init(self):
         # cut
-        self.imgs = json.loads(open("midnight.json").read())
-        for img in self.imgs:
-            img['jieba'] = (jieba.lcut(img['title']))
-        open("midnight.json","w").write(json.dumps(self.imgs))
+        self.img = []
+        if os.path.exists(self.food_dir):
+            self.imgs = json.loads(open(self.food_dir).read())
+            for img in self.imgs:
+                img['jieba'] = (jieba.lcut(img['title']))
+        open(self.food_dir,"w").write(json.dumps(self.imgs))
 
         # build
         self.jieba_dic = {}
@@ -98,9 +104,11 @@ class Midnight:
         for jiba in img['jieba']:
             self.jieba_dic[jiba] = img
         self.img.append(img)
-        open("midnight.json","w").write(json.dumps(self.imgs))
+        open(self.food_dir,"w").write(json.dumps(self.imgs))
 
     def main(self,datadict):
+        if self.nochannel:
+            return 
         if datadict['type'] == 'message' and datadict.get('subtype') == "file_share" and datadict.get('channel') == self.channel_id :
             self.imageAdd(datadict['file'])
         if not datadict['type'] == 'message' or 'subtype' in datadict:
@@ -129,12 +137,12 @@ class Midnight:
         elif datadict['text'].startswith("foodadd "):
             text=re.search(r"(?<=foodadd ).*",datadict['text']).group().strip()
             jieba.add_word(text)
-            open("words.jb","w+").write('+'+text+'\n')
+            open(self.food_addir,"w+").write('+'+text+'\n')
             self.init()
         elif datadict['text'].startswith("fooddel "):
             text=re.search(r"(?<=fooddel ).*",datadict['text']).group().strip()
             jieba.del_word(text)
-            open("words.jb","w+").write('-'+text+'\n')
+            open(self.food_addir,"w+").write('-'+text+'\n')
             self.init()
                 
 

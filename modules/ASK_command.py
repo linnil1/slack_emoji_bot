@@ -3,7 +3,7 @@ import re
 from lxml import etree
 from functools import partial
 
-class ASK_wolfram: 
+class ASK: 
     def __init__(self,slack,custom):
         self.slack = slack
         self.custom = custom
@@ -43,7 +43,7 @@ class ASK_wolfram:
             if attr != "inside" :
                 dic["text"]= "\n".join([w.attrib[attr] for w in warn])
             else:
-                dic["text"]= "\n".join([w.text for w in warn])
+                dic["text"]= "\n".join([w.text for w in warn if w.text ])
             return dic
 
         return {}
@@ -63,9 +63,9 @@ class ASK_wolfram:
                     "title":    (scan[0].xpath("*/plaintext")[0].text),
                     'image_url':(scan[0].xpath("*/img")[0].attrib['src']) })
             answer.append( {
-                "title":" = "+(primary[0].xpath("*/plaintext")[0].text),
+                "title":" = "+str(primary[0].xpath("*/plaintext")[0].text),
                 'image_url':  (primary[0].xpath("*/img")[0].attrib['src']) })
-
+            # beacuse <text></text> parse to None
             return answer
 
         # get all pods
@@ -95,40 +95,48 @@ class ASK_wolfram:
                 "color": "warning",
                 "text": "\n".join(['['+str(i)+'] '+w.attrib['desc'] for i,w in enumerate(assum)])})
 
+
+
         if not podarr:
             podarr = "False"
         return podarr
 
     def imgurUse(self,urlarr):
-        newarr = self.custom.imgur.imagesUpload([url['image_url'] for url in urlarr])
-        for i,newurl in enumerate(newarr):
-            urlarr[i]['image_url'] = newurl
+        allurls = [url['image_url'] for url in urlarr if 'image_url' in url]
+        newarr = self.custom.imgur.imagesUpload(allurls)
+
+        num = 0 
+        for url in urlarr:
+            if 'image_url' in url:
+                url['image_url'] = newarr[num]
+                num += 1
 
     def textOut(self,pat,text):
         return  re.search(pat,text,re.DOTALL).group().strip()
 
     def main(self,datadict):
-        if datadict['type'] == 'message':
-            answer = ""
-            config = {}
-            func = self.apiCall
-            if re.search(r"^ASK\[\d+\]",datadict['text']):
-                num = int(re.findall(r"^ASK\[(\d+)\]",datadict['text'])[0])
-                datadict['text'] = re.sub(r"^ASK\[(\d+)\]","ASK",datadict['text'])
-                func=partial(self.assumCall,num=num)
+        if not datadict['type'] == 'message' or 'subtype' in datadict:
+            return 
+        answer = ""
+        config = {}
+        func = self.apiCall
+        if re.search(r"^ASK\[\d+\]",datadict['text']):
+            num = int(re.findall(r"^ASK\[(\d+)\]",datadict['text'])[0])
+            datadict['text'] = re.sub(r"^ASK\[(\d+)\]","ASK",datadict['text'])
+            func=partial(self.assumCall,num=num)
 
-            if datadict['text'].startswith("ASK "):
-                text = self.textOut(r"(?<=ASK ).*",datadict['text'])
-            elif datadict['text'].startswith("ASKmore "):
-                text = self.textOut(r"(?<=ASKmore ).*",datadict['text'])
-                config['short'] = False
-            elif datadict['text'].startswith("ASKall "):
-                text = self.textOut(r"(?<=ASKall ).*",datadict['text'])
-                config['short'] = False
-                config['showall'] = True
+        if datadict['text'].startswith("ASK "):
+            text = self.textOut(r"(?<=ASK ).*",datadict['text'])
+        elif datadict['text'].startswith("ASKmore "):
+            text = self.textOut(r"(?<=ASKmore ).*",datadict['text'])
+            config['short'] = False
+        elif datadict['text'].startswith("ASKall "):
+            text = self.textOut(r"(?<=ASKall ).*",datadict['text'])
+            config['short'] = False
+            config['showall'] = True
 
-            elif datadict['text'].startswith("ASKhelp"):
-                answer="""
+        elif datadict['text'].startswith("ASKhelp"):
+            answer="""
 `ASK {your question}` Ask wolfram about your question
 `ASKmore  {quetsion}` Ask and get more data 
 `ASKall   {quetsion}` Ask and get all  data 
@@ -136,19 +144,20 @@ If your want to choose the meaning in `Did you mean?`
 `ASK[{num}] {question}`
 `ASK[{num}]more {question}`
 `ASK[{num}]all  {question}`
-                """
-            else:
-                return 
+            """
+        else:
+            return 
 
-            payload = {
-                "username": "WolframAlpha Answer",
-                "icon_emoji": ":_e7_ae_97:",
-                "channel": datadict['channel']}
+        payload = {
+            "username": "WolframAlpha Answer",
+            "icon_emoji": ":_e7_ae_97:",
+            "channel": datadict['channel']}
 
-            if not answer:
-                answer = self.answerGet(func(text),**config)
-            if type(answer) is list:
-                #self.imgurUse(answer)
-                self.slack.api_call("chat.postMessage",**payload,attachments=answer)
-            else:
-                self.slack.api_call("chat.postMessage",**payload,text=answer)
+        if not answer:
+            answer = self.answerGet(func(text),**config)
+        if type(answer) is list:
+            self.imgurUse(answer)
+            self.slack.api_call("chat.postMessage",**payload,attachments=answer)
+        else:
+            self.slack.api_call("chat.postMessage",**payload,text=answer)
+

@@ -17,9 +17,9 @@ import oldgif_util
 import math
 
 
-class OLD_command:
+class OLD:
     def __init__(self,slack,custom):
-        self.dir = "word_data/"
+        self.dir = "data/word_data/"
         self.keyword = "old"
         self.slack  = slack
         self.custom = custom
