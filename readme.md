@@ -8,41 +8,40 @@ Requirement :
 	Python 3.5
 
 
-There are some command :
-
+There are some command : 
 * old module
 
 	This module transfer 中文字 to 小篆
-	* old xxx
-	* oldreact [floor] xxx
-	* oldtime [time] 
-	* oldset [a_word] [new_name]
-	* oldask [6characters]
-	* oldhelp [funcs...]
-	* oldgif (-t second=0.5) [text]
-	* oldgifreact (floor=-1) [text]
+	* old [text]                 **transfer text to 小篆emoji.**
+	* oldask [6characters]       **To ask what is the chinese word of the url-encoded string**
+	* oldreact (floor=-1) [text] **give reactions of 小篆emoji to specific floor message**
+	* oldset [aWord] [newName]   **set alias for 小篆emoji**
+	* oldhelp                    **get help for the usage of this module**
+	* oldtime (time)             **show date and time by 小篆emoji**
+	* oldgif (-t second=0.5) [text] **combine 小篆emojis into gif**
+	* oldgifreact (floor=-1) [text] **give reactions of 小篆emoji gif to specific floor message**
 	
     You can see it at oldhelp.md
  
- * KXGEN module
+* KXGEN module
  
  	This module will grab the png data from kxgen website
  	* kxgen [name] [(param=)value]
  	* kxgenhelp (name)
  
- * VOTE module
+* VOTE module
 
  	Use this module to vote
     * vote xxx oooo xxx
     * votehelp
 
- * 社課 module
+* 社課 module
 
 	 Output the class this time
 
 	 Just type "社課"
 
- * Food module
+* Food module
  	
 	Use this module to find food on midnight channel
 	**(it will fail if you don't have midnight channel)** 
@@ -51,7 +50,7 @@ There are some command :
     * foodadd [foodname] 
     * fooddel [foodname] 
 
- * poFB module
+* poFB module
  
    this module will help you post your text on slack to ntuosc fb
 
@@ -60,13 +59,21 @@ There are some command :
    * poFB [text]
 
 
- * ASK module
+* ASK module
  	
 	Get the answer of your text
 
 	Power by WolframAlpha 
 
     * ASK [text]
+    * ASK [text]
+	* ASK {your question} Ask wolfram about your question
+	* ASKmore  {quetsion} Ask and get more data 
+	* ASKall   {quetsion} Ask and get all  data 
+	If your want to choose the meaning in `Did you mean?`
+	* ASK[{num}] {question}
+	* ASK[{num}]more {question}
+	* ASK[{num}]all  {question}
 
 The usage is write inside the command
 

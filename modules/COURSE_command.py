@@ -6,6 +6,7 @@ import dateutil.parser
 import datetime
 from pprint import pprint
 
+#this is for NTUOSC
 class COURSE:
     def __init__(self,slack,custom):
         self.slack = slack
@@ -79,6 +80,6 @@ class COURSE:
                     }]
                 )
     
-#a = Course("","")
+#a = COURSE("","")
 #a.courseAll()
-#a.courseParse()
+#print(a.courseParse())
