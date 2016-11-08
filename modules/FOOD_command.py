@@ -144,6 +144,3 @@ class FOOD:
             jieba.del_word(text)
             open(self.food_addir,"w+").write('-'+text+'\n')
             self.init()
-                
-
-

@@ -93,7 +93,7 @@ Usually, you can type xxhelp for help
 
 when you first use it 
 
-Please send message "old 算課牛食篆轉我好中不一二三四五六七八九十票行廢"
+Please send message "old 算課牛食篆轉我好中不一二三四五六七八九十票行廢同"
 
 ## license
 MIT ?

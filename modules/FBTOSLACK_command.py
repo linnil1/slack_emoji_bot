@@ -1,25 +1,60 @@
 import facebook 
 from datetime import datetime
 from pprint import pprint
+import os
 
 class FBTOSLACK:
     def __init__(self,slack,custom):
         self.slack = slack
         self.custom = custom
-        self.club = ""
-        self.since = int(datetime.now().strftime("%s")) 
-        self.interval = 10
+        self.club = "233850716803300" # NTUOSC ID
+        self.interval = 60 #unit: second
+
+        # find broadcast channel
+        self.channelname = "random"
         self.payload = {
-            'channel': "C1W0SLNSC",
+            'channel': self.channelFind(),
             'username': "FB syncer",
-            'icon_emoji': ":_e7_89_9b:"
+            'icon_emoji': ":_e5_90_8c:"
         }
+        
+        # find token user 
+        self.username = "linnil1"
+        self.payload_user = {
+            'channel': self.userFind(),
+            'username': "FB syncer",
+            'icon_emoji': ":_e5_90_8c:"
+        }
+
+        # fine sync time
+        self.sincedir = "data/time.log"
+        if os.path.exists(self.sincedir):
+            self.since = int(open(self.sincedir).read())
+        else:
+            self.since = int(datetime.now().strftime("%s")) 
+
         self.init("")
-        self.stop = False
+        self.slack.api_call("chat.postMessage",**self.payload_user,text="Init Token\nUse token=xxx")
+        self.stop = True
 
     def init(self,token):
         self.graph = facebook.GraphAPI(access_token=token, version="2.7")
+        self.stop = False
 
+    def channelFind(self):
+        rep = self.slack.api_call("channels.list")
+        for c in rep['channels']:
+            if c['name'].lower() == self.channelname:
+                return c['id']
+    def userFind(self):
+        userid = ""
+        rep = self.slack.api_call("users.list")
+        for c in rep['members']:
+            if c['name'] == self.username:
+                userid = c['id']
+                break
+        rep = self.slack.api_call("im.open",user=userid)
+        return rep['channel']['id']
 
     def attachFind(self,datarr,dep=0):
         attachs = []
@@ -72,15 +107,23 @@ class FBTOSLACK:
         try:
             feeds = self.graph.get_object(id=self.club+"/feed", fields="message,attachments,permalink_url,from,story,description,type,created_time",since=self.since)
             self.since = int(datetime.now().strftime("%s"))
+            open(self.sincedir,"w").write(str(self.since))
         except:
             print("error")
+            self.slack.api_call("chat.postMessage",**self.payload_user,text="Token Expired\nUse token=xxx to retoken")
             self.stop = True
+
             return 
         feeds = feeds['data'] # ignore paging
-        pprint(feeds)
+        if feeds:
+            pprint(feeds)
         return feeds
 
-    def main(self):
+    def main(self,datadict):
+        # get token
+        if datadict['type'] == 'message' and datadict['channel'] == self.payload_user['channel'] and datadict['text'].startswith("token="):
+            self.init(datadict['text'][6:])
+            
         if self.stop:
             return 
         if  int(datetime.now().strftime("%s")) - self.since < self.interval:
@@ -89,6 +132,6 @@ class FBTOSLACK:
         if not feeds:
             return 
 
-        messages = [ self.feedToSlack(feed) for feed in feeds[-1:0]]
+        messages = [ self.feedToSlack(feed) for feed in reversed(feeds)]
         for message in messages:
             self.slack.api_call("chat.postMessage",**self.payload,**message)

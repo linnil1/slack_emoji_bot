@@ -2,6 +2,7 @@ _*
 *.swp
 privacy.json
 midnight.json
+time.log
 makefile
 test*
 word_data
