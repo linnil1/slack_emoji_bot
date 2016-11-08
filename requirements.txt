@@ -6,3 +6,5 @@ simple-crypt
 numpy
 jieba
 imgurpython
+cowpy
+facebook-sdk

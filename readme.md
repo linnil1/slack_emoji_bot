@@ -75,9 +75,25 @@ There are some command :
 	* ASK[{num}]more {question}
 	* ASK[{num}]all  {question}
 
+* COWSAY module
+	
+	same as cowsay command
+
+	when install, you should install the newest from github
+
+	https://github.com/jeffbuttars/cowpy
+
+	* cowsay [-h] [-l] [-t] [-u] [-e EYES] [-f COWACTER] [-E] [-r] [-x] [msg [msg ...]]
+	* cowsay --help 
+
+
 The usage is write inside the command
 
 Usually, you can type xxhelp for help
+
+when you first use it 
+
+Please send message "old 算課牛食篆轉我好中不一二三四五六七八九十票行廢"
 
 ## license
 MIT ?
