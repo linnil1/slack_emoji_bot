@@ -8,8 +8,11 @@ from pprint import pprint
 
 #this is for NTUOSC
 class COURSE:
+    def require():
+        return ["team_name"]
     def __init__(self,slack,custom):
         self.slack = slack
+        self.isntuosc = custom['team_name'] == 'ntuosc'
         self.coursedata = []
 
     def courseAll(self):
@@ -64,6 +67,8 @@ class COURSE:
         return text
 
     def main(self,datadict):
+        if not self.isntuosc:
+            return 
         if not datadict['type'] == 'message' or ('subtype' in datadict and datadict['subtype'] != "bot_message"):
             return 
         if datadict['text'] == "社課":

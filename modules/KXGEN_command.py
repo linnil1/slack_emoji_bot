@@ -4,10 +4,10 @@ import re
 from bs4 import BeautifulSoup as BS
 
 class KXGEN:
+    def require():
+        return []
     def __init__(self,slack,custom):
-        self.keyword = "kxgen"
         self.slack = slack
-        self.custom= custom
 
     def pngDownload(self,name,pagename,param={}):
         data = {

@@ -6,6 +6,8 @@ import re
 import os
 
 class FOOD:
+    def require():
+        return [{"name":"food_channelname","default":"midnight"}]
     def pageParse(t=0):
         custom = SlackClient("")
         nowpage = 1
@@ -33,7 +35,6 @@ class FOOD:
 
     def __init__(self,slack,custom):
         self.slack = slack
-        self.custom = custom
 
         self.food_dir = "data/midnight.json"
         self.food_dic = "data/dict.txt.big"
@@ -44,7 +45,7 @@ class FOOD:
         rep = self.slack.api_call("channels.list")
         self.channel_id = ""
         for c in rep['channels']:
-            if c['name'].lower() == 'midnight':
+            if c['name'].lower() == custom['food_channelname']:
                 self.channel_id = c['id']
                 break;
 

@@ -18,11 +18,14 @@ import math
 
 
 class OLD:
+    def require():
+        return [{"name":"emoji","module":True}]
+
     def __init__(self,slack,custom):
         self.dir = "data/word_data/"
         self.keyword = "old"
         self.slack  = slack
-        self.custom = custom
+        self.emoji = custom['emoji']
         self.oldreact = oldreact(self,slack)
 
     def filenameTo(self,word):
@@ -56,7 +59,7 @@ class OLD:
             self.imageDownload(word)
         message = self.messageWord(word)
         if file_noexist and len(message)!=1 :
-            print(filename +">>"+ self.custom.emoji.upload(self.dir,filename))
+            print(filename +">>"+ self.emoji.upload(self.dir,filename))
         queue.put((word,message))
 
     def imageUpDown(self,qstr):
@@ -114,7 +117,7 @@ class OLD:
 
         if not os.path.isfile(self.dir+hashname):
             oldgif_util.gifGet(onlyemoji,giftime,self.dir,hashname)
-            self.custom.emoji.upload(self.dir,hashname)
+            self.emoji.upload(self.dir,hashname)
 
         print("giflen = "+str(len(onlyemoji)))
         return ':'+hashname+':'
@@ -189,7 +192,7 @@ class OLD:
 
             transdata = transdata[1:-1]  ## get rid of ::
 
-            payload['text'] = self.custom.emoji.setalias(transdata,two[1])
+            payload['text'] = self.emoji.setalias(transdata,two[1])
             print(self.slack.api_call("chat.postMessage",**payload))
         
         elif text.startswith("oldhelp"):

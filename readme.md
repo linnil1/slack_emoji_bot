@@ -58,6 +58,11 @@ There are some command :
 
    * poFB [text]
 
+* FBTOSLACK module
+
+	this module will copy the fb post to slack message
+
+	change configure at FBTOSLACK.py
 
 * ASK module
  	

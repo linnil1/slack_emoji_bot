@@ -4,14 +4,18 @@ from pprint import pprint
 import os
 
 class FBTOSLACK:
+    def require():
+        return ["fb_clubid",
+                "slack_username",
+                {"name":"syncfb_interval","default":60},
+                {"name":"syncfb_channel","default":"random"}]
     def __init__(self,slack,custom):
         self.slack = slack
-        self.custom = custom
-        self.club = "233850716803300" # NTUOSC ID
-        self.interval = 60 #unit: second
+        self.club = custom['fb_clubid']
+        self.interval = int(custom['syncfb_interval']) #unit: second
 
         # find broadcast channel
-        self.channelname = "random"
+        self.channelname = custom['syncfb_channel']
         self.payload = {
             'channel': self.channelFind(),
             'username': "FB syncer",
@@ -19,7 +23,7 @@ class FBTOSLACK:
         }
         
         # find token user 
-        self.username = "linnil1"
+        self.username = custom['slack_username']
         self.payload_user = {
             'channel': self.userFind(),
             'username': "FB syncer",

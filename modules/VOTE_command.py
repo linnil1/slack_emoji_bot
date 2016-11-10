@@ -7,10 +7,11 @@ from datetime import datetime as DT
 import time
 
 class VOTE:
+    def require():
+        return []
     def __init__(self,slack,custom):
         """ needed word: 我 好中不 一二三四五六七八九十 票 行 廢"""
         self.slack= slack
-        self.custom = custom
         self.emojidict = {
                 "me" :"_e6_88_91",
                 "yes":"_e5_a5_bd",

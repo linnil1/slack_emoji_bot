@@ -4,10 +4,14 @@ from lxml import etree
 from functools import partial
 
 class ASK: 
+    def require():
+        return [{"name":"wolfram_app","secret":True},
+                {"name":"imgur","module":True}]
+
     def __init__(self,slack,custom):
         self.slack = slack
-        self.custom = custom
-        self.appid = self.custom.wolfram_app
+        self.imgur = custom['imgur']
+        self.appid = custom['wolfram_app']
 
     def apiCall(self,text,assum=""):
         rep = requests.get("http://api.wolframalpha.com/v2/query",
@@ -103,7 +107,7 @@ class ASK:
 
     def imgurUse(self,urlarr):
         allurls = [url['image_url'] for url in urlarr if 'image_url' in url]
-        newarr = self.custom.imgur.imagesUpload(allurls)
+        newarr = self.imgur.imagesUpload(allurls)
 
         num = 0 
         for url in urlarr:

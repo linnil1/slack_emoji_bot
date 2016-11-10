@@ -12,17 +12,25 @@ import time
 
 class ntuosc:
     def __init__(self):
-        #from privacy
-        privacy = password_crypt.logIn()
-        self.custom= Customize(privacy)
-        self.slack = SlackClient(privacy['token'])
+        #read modules
+        imports = []
         self.modules = []
-
         modules = [ c for c in os.listdir("modules") if c.endswith("_command.py")]
         for command in modules:
             com = importlib.import_module(command[:-3])
             c = re.findall(r"(\w+)_command\.py",command)[0]
-            self.modules.append( getattr(com,c)(self.slack,self.custom) )
+            imports.append(getattr(com,c))
+
+        # read private relative
+        needprivacy = []
+        needprivacy = Customize.require() + [ i for imp in imports for i in imp.require() ] 
+        needprivacy = [ {'name':p} if type(p) is str else p for p in needprivacy]
+        privacy = password_crypt.logIn(needprivacy)
+
+        # init
+        custom = Customize(privacy)
+        self.slack = SlackClient(privacy['token'])
+        self.modules = [ imp(self.slack,custom.getPrivacy(imp.require())) for imp in imports ]
 
     def startRTM(self):
         if self.slack.rtm_connect():

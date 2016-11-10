@@ -144,16 +144,31 @@ class Slackbot:
             return self.upload(element)
 
 class Customize(BaseFunc):
+    def require():
+        return [ "team_name", "email",
+            {"name":"password","secret":True},
+            {"name":"token","secret":True},
+            {"name":"testtoken","secret":True,"default":""},
+            "imgur_id",
+            {"name":"imgur_secret","secret":True}]
+
     def __init__(self,privacy,login=True):
-        #get data from privacy
-        testtoken = privacy['testtoken']
+        # imgur
         client_id = privacy['imgur_id' ]
         client_secret = privacy['imgur_secret']
+        self.imgur = Imgur(client_id,client_secret)
 
+        # slackbot response
+        testtoken = privacy['testtoken']
+        self.slackbot = Slackbot(testtoken)
+
+        self.privacy = privacy
+
+        #emoji
+        team_name = privacy['team_name']
+        self.emoji = object
         if login:
             #prelogin
-            team_name = privacy['team_name']
-            email     = privacy['email'    ]   
             password  = privacy['password' ]
             self.baseurl = "https://{}.slack.com".format(team_name)
             self.url = self.baseurl+"/customize"
@@ -162,8 +177,8 @@ class Customize(BaseFunc):
             #login
             data = {
                 'crumb': self.crumbGet(rep),
-                'email': email,
-                'password': password,
+                'email': privacy['email'],
+                'password': privacy['password'],
                 'redir': "/customize",
                 'remember': "on",
                 'signin': 1
@@ -178,10 +193,21 @@ class Customize(BaseFunc):
             #function
             self.emoji = Emoji(self.baseurl,se.cookies)
 
-        #function
-        self.slackbot = Slackbot(testtoken)
-        self.imgur = Imgur(client_id,client_secret)
-        self.wolfram_app = privacy['wolfram_app']
+    def getPrivacy(self,require):
+        privacy = {}
+        for req in require:
+            if type(req) is str:
+                req = {'name':req}
+            if req.get("module"):
+                if req['name'] == "emoji":
+                    privacy["emoji"] = self.emoji
+                elif req['name'] == "imgur":
+                    privacy["imgur"] = self.imgur
+                else:
+                    print(req['name'] + " not found ")
+            else:
+                privacy[req['name']] = self.privacy[req['name']]
+        return privacy
 
 #a = Customize(json.loads(open("privacy.json").read()))
 

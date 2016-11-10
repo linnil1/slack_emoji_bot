@@ -87,9 +87,10 @@ def cowsay_main(parser,argtext):
 #cowsay_main('-t 123'.split())
 
 class COWSAY: 
+    def require():
+        return []
     def __init__(self,slack,custom):
         self.slack = slack
-        self.custom = custom
         self.parser = cowsay_init()
 
     def main(self,datadict):
