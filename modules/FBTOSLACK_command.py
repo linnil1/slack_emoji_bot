@@ -7,12 +7,14 @@ class FBTOSLACK:
     def require():
         return ["fb_clubid",
                 "slack_username",
+                {"name":"fb_token","default":""},
                 {"name":"syncfb_interval","default":60},
                 {"name":"syncfb_channel","default":"random"}]
     def __init__(self,slack,custom):
         self.slack = slack
         self.club = custom['fb_clubid']
         self.interval = int(custom['syncfb_interval']) #unit: second
+        self.diff = 5  # the difference between fb and my time
 
         # find broadcast channel
         self.channelname = custom['syncfb_channel']
@@ -31,15 +33,11 @@ class FBTOSLACK:
         }
 
         # fine sync time
-        self.sincedir = "data/time.log"
-        if os.path.exists(self.sincedir):
-            self.since = int(open(self.sincedir).read())
-        else:
-            self.since = int(datetime.now().strftime("%s")) 
+        self.rundata = custom['data']
+        if not self.rundata.get("FBTOSLACK_timelog"):
+            self.rundata.set("FBTOSLACK_timelog",int(datetime.now().strftime("%s")) )
 
-        self.init("")
-        self.slack.api_call("chat.postMessage",**self.payload_user,text="Init Token\nUse token=xxx")
-        self.stop = True
+        self.init(custom['fb_token'])
 
     def init(self,token):
         self.graph = facebook.GraphAPI(access_token=token, version="2.7")
@@ -65,11 +63,12 @@ class FBTOSLACK:
         for data in datarr:
             attach = {}
             if data.get('media') and data['media'].get('image'):
+                attach["title"] = "Images"
                 attach['image_url'] = data['media']['image']['src']
                 if data['type'] == "video_inline":
                     attach['text'] = "<"+data['url']+"|Click link to see videos>"
                 else:
-                    attach['text'] = "Images"
+                    attach['text'] = "Image"
                 attach['dep'] = dep
 
             attachs.append(attach)
@@ -88,6 +87,7 @@ class FBTOSLACK:
         main['text']=""
         if feed.get('story'):
             main['text'] += '_'+feed.get('story')+"_\n"
+            main['mrkdwn_in'] = ["text"]
         if feed.get('message'):
             main['text'] += feed.get('message')
 
@@ -105,19 +105,24 @@ class FBTOSLACK:
             
         attachs = [main]+attachs
         attachs[-1]['footer'] = feed['created_time'] + "'\n<"+feed['permalink_url']+"|FB_link>"
-        return {'attachments':attachs}
+
+        if feed['id'] in self.rundata.get("FBTOSLACK_fbid"):
+            return {} # empty will not output
+        else:
+            #record fbid for not deplicated post same data
+            self.rundata.append("FBTOSLACK_fbid",feed['id'])
+            return {'attachments':attachs}
 
     def feedsGet(self):
         try:
-            feeds = self.graph.get_object(id=self.club+"/feed", fields="message,attachments,permalink_url,from,story,description,type,created_time",since=self.since)
-            self.since = int(datetime.now().strftime("%s"))
-            open(self.sincedir,"w").write(str(self.since))
+            feeds = self.graph.get_object(id=self.club+"/feed", fields="message,attachments,permalink_url,from,story,description,type,created_time",since=self.rundata.get("FBTOSLACK_timelog")-self.diff)
+            self.rundata.set("FBTOSLACK_timelog",int(datetime.now().strftime("%s")))
         except:
             print("error")
             self.slack.api_call("chat.postMessage",**self.payload_user,text="Token Expired\nUse token=xxx to retoken")
             self.stop = True
-
             return 
+
         feeds = feeds['data'] # ignore paging
         if feeds:
             pprint(feeds)
@@ -130,7 +135,7 @@ class FBTOSLACK:
             
         if self.stop:
             return 
-        if  int(datetime.now().strftime("%s")) - self.since < self.interval:
+        if  int(datetime.now().strftime("%s")) - self.rundata.get("FBTOSLACK_timelog") < self.interval:
             return 
         feeds = self.feedsGet()
         if not feeds:

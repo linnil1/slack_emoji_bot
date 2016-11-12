@@ -8,7 +8,7 @@ def privacyAsk(need):
     func = input
     if need.get("secret"):
         func = getpass
-    default = "(Default='"+str(need['default'])+"')" if need.get("default") else ""
+    default = "(Default='"+str(need['default'])+"')" if need.get("default") is not None else ""
     inp = func(need['name']+default+": ").strip()
     if default and not inp:
         return need['default']
@@ -23,9 +23,8 @@ def dictUpdate(dic,old,need):
     else:
         dic.update({need['name']:old[need['name']]})
 
-from pprint import pprint
 def logIn(needprivacy):
-    pprint(needprivacy)
+    #pprint(needprivacy)
     # privacy file
     filepath = "data/privacy.json"
     file_exist = os.path.isfile(filepath)

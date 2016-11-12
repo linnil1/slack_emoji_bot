@@ -33,8 +33,7 @@ There are some command :
 
  	Use this module to vote
     * vote xxx oooo xxx
-    * votehelp
-
+    * votehelp 
 * 社課 module
 
 	 Output the class this time
@@ -91,14 +90,18 @@ There are some command :
 	* cowsay [-h] [-l] [-t] [-u] [-e EYES] [-f COWACTER] [-E] [-r] [-x] [msg [msg ...]]
 	* cowsay --help 
 
+* FBTOSLACK module
+
+	sync your fb post to slack 
+
+	If your token is expire, it will remind you by slack user
 
 The usage is write inside the command
 
 Usually, you can type xxhelp for help
 
-when you first use it 
-
 Please send message "old 算課牛食篆轉我好中不一二三四五六七八九十票行廢同"
+when you first run it
 
 ## license
 MIT ?

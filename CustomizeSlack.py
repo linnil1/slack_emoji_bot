@@ -7,6 +7,7 @@ from bs4 import BeautifulSoup
 from slackclient import SlackClient
 from imgurpython import ImgurClient
 from multiprocessing import Pool
+import os
 
 class Imgur:
     def __init__(self,client_id,client_secret):
@@ -143,6 +144,31 @@ class Slackbot:
             element['responses'].append(word)
             return self.upload(element)
 
+class RunData:
+    def __init__(self):
+        self.path = "data/rundata.json"
+        self.data = {}
+        if os.path.exists(self.path):
+            self.data = json.loads(open(self.path).read())
+        else:
+            open(self.path,"w").write(json.dumps({}))
+
+    def append(self,key,data):
+        if not self.data.get(key):
+            self.data[key] = []
+        self.data[key].append(data)
+        open(self.path,"w").write(json.dumps(self.data))
+    
+    def set(self,key,data):
+        self.data[key] = data
+        open(self.path,"w").write(json.dumps(self.data))
+
+    def get(self,key):
+        if self.data.get(key):
+            return self.data.get(key)
+        else:
+            return []
+
 class Customize(BaseFunc):
     def require():
         return [ "team_name", "email",
@@ -162,39 +188,42 @@ class Customize(BaseFunc):
         testtoken = privacy['testtoken']
         self.slackbot = Slackbot(testtoken)
 
+        #privacy
         self.privacy = privacy
+        self.rundata = RunData()
 
         #emoji
         team_name = privacy['team_name']
         self.emoji = object
         if login:
-            #prelogin
-            password  = privacy['password' ]
-            self.baseurl = "https://{}.slack.com".format(team_name)
-            self.url = self.baseurl+"/customize"
-            se,rep = self.sessionStart()
-            
-            #login
-            data = {
-                'crumb': self.crumbGet(rep),
-                'email': privacy['email'],
-                'password': privacy['password'],
-                'redir': "/customize",
-                'remember': "on",
-                'signin': 1
-            }
-            rep = se.post(self.baseurl,data=data, allow_redirects=True)
-            rep.raise_for_status()
+            self.logIn(team_name,privacy['password'],privacy['email'])
 
-            #stdout not essentional
-            soup = BeautifulSoup(rep.text,"lxml").find_all("h1")
-            print("team_name = "+soup[0].text.strip())
+    def logIn(self,team_name,password,email):
+        self.baseurl = "https://{}.slack.com".format(team_name)
+        self.url = self.baseurl+"/customize"
+        se,rep = self.sessionStart()
+        
+        #login
+        data = {
+            'crumb': self.crumbGet(rep),
+            'email': email,
+            'password': password,
+            'redir': "/customize",
+            'remember': "on",
+            'signin': 1
+        }
+        rep = se.post(self.baseurl,data=data, allow_redirects=True)
 
-            #function
-            self.emoji = Emoji(self.baseurl,se.cookies)
+        #stdout not essentional
+        rep.raise_for_status()
+        soup = BeautifulSoup(rep.text,"lxml").find_all("h1")
+        print("team_name = "+soup[0].text.strip())
+
+        #function
+        self.emoji = Emoji(self.baseurl,se.cookies)
 
     def getPrivacy(self,require):
-        privacy = {}
+        privacy = {"data":self.rundata}
         for req in require:
             if type(req) is str:
                 req = {'name':req}

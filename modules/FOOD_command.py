@@ -35,10 +35,10 @@ class FOOD:
 
     def __init__(self,slack,custom):
         self.slack = slack
+        self.rundata = custom['data']
 
         self.food_dir = "data/midnight.json"
         self.food_dic = "data/dict.txt.big"
-        self.food_addir = "data/words.jb"
 
         #find midnight channel
         self.nochannel = False
@@ -53,12 +53,10 @@ class FOOD:
         jieba.initialize()
 
         # add and del words
-        if os.path.exists(self.food_addir):
-            for word in list(filter(None,open(self.food_addir).read().split('\n'))):
-                if word[0] == '+' : 
-                    jieba.add_word(word[1:])
-                elif word[0] == '-' : 
-                    jieba.del_word(word[1:])
+        for word in self.rundata.get('FOOD_addword'):
+            jieba.add_word(word)
+        for word in self.rundata.get('FOOD_delword'):
+            jieba.del_word(word)
 
         if not self.channel_id:
             print("no midnight channel! Restart when midnight channel can use")
@@ -138,10 +136,10 @@ class FOOD:
         elif datadict['text'].startswith("foodadd "):
             text=re.search(r"(?<=foodadd ).*",datadict['text']).group().strip()
             jieba.add_word(text)
-            open(self.food_addir,"w+").write('+'+text+'\n')
+            self.rundata.append("FOOD_addword",text)
             self.init()
         elif datadict['text'].startswith("fooddel "):
             text=re.search(r"(?<=fooddel ).*",datadict['text']).group().strip()
             jieba.del_word(text)
-            open(self.food_addir,"w+").write('-'+text+'\n')
+            self.rundata.append("FOOD_delword",text)
             self.init()
