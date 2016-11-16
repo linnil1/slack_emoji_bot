@@ -103,5 +103,30 @@ Usually, you can type xxhelp for help
 Please send message "old 算課牛食篆轉我好中不一二三四五六七八九十票行廢同"
 when you first run it
 
+# create new module
+
+create XXX_command.py
+
+In script,  XXX is a class name
+
+XXX.require() will return privacy setting
+
+XXX(slack,custom) will init the module
+
+## privacy setting
+
+an array of privacy object
+
+privacy object : 
+``` python
+{ 
+  'name': "APPID", # name should not use data
+  'secret': True, # it will not show on console when writing
+  'desp' : "xxx uuuu werwerf skdjfslkdjf",
+  'default' : "123" # this will return string
+  'module' : True # this will return the class in common/ and module name is name
+}
+```
+
 ## license
 MIT ?

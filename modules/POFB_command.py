@@ -2,7 +2,7 @@ import re
 import urllib
 class POFB:
     def require():
-        return ["team_name"]
+        return [{"name":"team_name","common":True}]
     def __init__(self,slack,custom):
         self.slack = slack
         self.isntuosc = custom['team_name'] == "ntuosc"

@@ -5,8 +5,8 @@ import os
 
 class FBTOSLACK:
     def require():
-        return ["fb_clubid",
-                "slack_username",
+        return [{"name":"fb_clubid"},
+                {"name":"slack_username"},
                 {"name":"fb_token","default":""},
                 {"name":"syncfb_interval","default":60},
                 {"name":"syncfb_channel","default":"random"}]
@@ -34,14 +34,14 @@ class FBTOSLACK:
 
         # fine sync time
         self.rundata = custom['data']
-        if not self.rundata.get("FBTOSLACK_timelog"):
-            self.rundata.set("FBTOSLACK_timelog",int(datetime.now().strftime("%s")) )
+        if not self.rundata.get("timelog"):
+            self.rundata.set("timelog",int(datetime.now().strftime("%s")) )
 
         self.init(custom['fb_token'])
 
     def init(self,token):
         self.graph = facebook.GraphAPI(access_token=token, version="2.7")
-        self.stop = False
+        self.stop = 5 
 
     def channelFind(self):
         rep = self.slack.api_call("channels.list")
@@ -106,21 +106,22 @@ class FBTOSLACK:
         attachs = [main]+attachs
         attachs[-1]['footer'] = feed['created_time'] + "'\n<"+feed['permalink_url']+"|FB_link>"
 
-        if feed['id'] in self.rundata.get("FBTOSLACK_fbid"):
+        if feed['id'] in self.rundata.get("fbid"):
             return {} # empty will not output
         else:
             #record fbid for not deplicated post same data
-            self.rundata.append("FBTOSLACK_fbid",feed['id'])
+            self.rundata.append("fbid",feed['id'])
             return {'attachments':attachs}
 
     def feedsGet(self):
         try:
-            feeds = self.graph.get_object(id=self.club+"/feed", fields="message,attachments,permalink_url,from,story,description,type,created_time",since=self.rundata.get("FBTOSLACK_timelog")-self.diff)
-            self.rundata.set("FBTOSLACK_timelog",int(datetime.now().strftime("%s")))
+            feeds = self.graph.get_object(id=self.club+"/feed", fields="message,attachments,permalink_url,from,story,description,type,created_time",since=self.rundata.get("timelog")-self.diff)
+            self.rundata.set("timelog",int(datetime.now().strftime("%s")))
+            self.stop = 5
         except:
+            self.stop = self.stop-1 
             print("error")
             self.slack.api_call("chat.postMessage",**self.payload_user,text="Token Expired\nUse token=xxx to retoken")
-            self.stop = True
             return 
 
         feeds = feeds['data'] # ignore paging
@@ -133,9 +134,9 @@ class FBTOSLACK:
         if datadict['type'] == 'message' and datadict['channel'] == self.payload_user['channel'] and datadict['text'].startswith("token="):
             self.init(datadict['text'][6:])
             
-        if self.stop:
+        if self.stop < 0 :
             return 
-        if  int(datetime.now().strftime("%s")) - self.rundata.get("FBTOSLACK_timelog") < self.interval:
+        if  int(datetime.now().strftime("%s")) - self.rundata.get("timelog") < self.interval:
             return 
         feeds = self.feedsGet()
         if not feeds:

@@ -8,6 +8,10 @@ def privacyAsk(need):
     func = input
     if need.get("secret"):
         func = getpass
+    text = ""
+    if need.get("desp"):
+        print(need['desp'])
+        
     default = "(Default='"+str(need['default'])+"')" if need.get("default") is not None else ""
     inp = func(need['name']+default+": ").strip()
     if default and not inp:

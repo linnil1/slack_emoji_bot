@@ -9,7 +9,7 @@ from pprint import pprint
 #this is for NTUOSC
 class COURSE:
     def require():
-        return ["team_name"]
+        return [{"name":"team_name"}]
     def __init__(self,slack,custom):
         self.slack = slack
         self.isntuosc = custom['team_name'] == 'ntuosc'

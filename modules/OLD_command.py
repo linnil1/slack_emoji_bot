@@ -1,7 +1,6 @@
 #!/usr/bin/python
 # -*- coding: utf-8  -*-
 
-from CustomizeSlack import Customize
 from oldreact_util import oldreact
 import oldtime_util 
 import urllib.request
@@ -19,13 +18,13 @@ import math
 
 class OLD:
     def require():
-        return [{"name":"emoji","module":True}]
+        return [{"name":"Emoji","module":True}]
 
     def __init__(self,slack,custom):
         self.dir = "data/word_data/"
         self.keyword = "old"
         self.slack  = slack
-        self.emoji = custom['emoji']
+        self.emoji = custom['Emoji']
         self.oldreact = oldreact(self,slack)
 
     def filenameTo(self,word):

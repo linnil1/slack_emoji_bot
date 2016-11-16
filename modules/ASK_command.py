@@ -6,11 +6,11 @@ from functools import partial
 class ASK: 
     def require():
         return [{"name":"wolfram_app","secret":True},
-                {"name":"imgur","module":True}]
+                {"name":"Imgur","module":True}]
 
     def __init__(self,slack,custom):
         self.slack = slack
-        self.imgur = custom['imgur']
+        self.imgur = custom['Imgur']
         self.appid = custom['wolfram_app']
 
     def apiCall(self,text,assum=""):
