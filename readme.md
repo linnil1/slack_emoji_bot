@@ -96,6 +96,16 @@ There are some command :
 
 	If your token is expire, it will remind you by slack user
 
+	if you want to connect to two more fb
+
+	just copy file and modify the class name as module name
+
+* ANON module
+
+	anonymous send data to the channel
+
+	anon [text] to command_bot and you will see your data in channel anonymously
+
 The usage is write inside the command
 
 Usually, you can type xxhelp for help
@@ -127,6 +137,26 @@ privacy object :
   'module' : True # this will return the class in common/ and module name is name
 }
 ```
+
+## init module
+
+your `__init__` need to parameters
+
+`def __init__(self,slack,custom)`
+
+the slack is SlackClient
+
+and custom is the data given by our require . 
+and it is a dictionary
+
+## run module
+
+set `def main(self,data)`
+
+server will run it everytime when new message come
+
+the message format is same as slack rtm format
+
 
 ## license
 MIT ?

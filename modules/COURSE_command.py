@@ -85,6 +85,6 @@ class COURSE:
                     }]
                 )
     
-#a = COURSE("","")
+#a = COURSE("",{"team_name":"ntuosc"})
 #a.courseAll()
 #print(a.courseParse())

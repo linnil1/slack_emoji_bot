@@ -48,6 +48,8 @@ class FBTOSLACK:
         for c in rep['channels']:
             if c['name'].lower() == self.channelname:
                 return c['id']
+        raise ValueError("wrong channel name")
+
     def userFind(self):
         userid = ""
         rep = self.slack.api_call("users.list")

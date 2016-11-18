@@ -1,38 +1,35 @@
-wantmodule = "FBTOSLACK"
+import InitModule
 from slackclient import SlackClient
-from CustomizeSlack import Customize
+import copy
 
 import sys
-import os
-import re
-import importlib
-import json
-sys.path.insert(0, './modules/')
-
 import time
 
-class ntuosc:
+
+import os
+import sys
+import re
+import importlib
+sys.path.insert(0, './modules/')
+sys.path.insert(0, './common/')
+import password_crypt 
+import copy
+
+wantname = "ANON"
+
+class Slack_RTM:
     def __init__(self):
-        #read modules
-        imports = []
-        self.modules = []
-        modules = [ c for c in os.listdir("modules") if c.endswith("_command.py")]
-        for command in modules:
-            com = importlib.import_module(command[:-3])
-            c = re.findall(r"(\w+)_command\.py",command)[0]
-            if c == wantmodule:
-                imports.append(getattr(com,c))
+        imports = InitModule.moduleGet()
+        privacy = password_crypt.logIn(InitModule.requireGet(imports))
 
-        # read private relative
-        needprivacy = []
-        needprivacy = Customize.require() + [ i for imp in imports for i in imp.require() ] 
-        needprivacy = [ {'name':p} if type(p) is str else p for p in needprivacy]
-        privacy = password_crypt.logIn(needprivacy)
+        im = []
+        for i in imports:
+            if( i['name'] in ["","OLD","Emoji",wantname] ):
+                im.append(i)
+        imports = im
 
-        # init
-        custom = Customize(privacy)
-        self.slack = SlackClient(privacy['token'])
-        self.modules = [ imp(self.slack,custom.getPrivacy(imp.require())) for imp in imports ]
+        self.modules = InitModule.initGet(privacy,imports)
+        self.slack = SlackClient(privacy['_TOKEN']) #dirty methods
 
     def startRTM(self):
         if self.slack.rtm_connect():
@@ -42,7 +39,8 @@ class ntuosc:
                 if data and data[0]['type'] not in ['user_typing','reconnect_url','pref_change','presence_change','emoji_changed']:
                     print(data)
                 self.commandSelect(data[0] if data else {"type":None})
-                time.sleep(1)
+                if not data:
+                    time.sleep(1)
         else:
             print("Connect Error! Please Reconnect")
 
@@ -51,8 +49,8 @@ class ntuosc:
 
     def commandSelect(self,data):
         for mod in self.modules:
-            mod.main(data)
+            mod.main(copy.deepcopy(data))
 
 
-ntu =  ntuosc()
-ntu.start()
+slack_rtm=  Slack_RTM()
+slack_rtm.start()

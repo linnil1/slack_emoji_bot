@@ -1,5 +1,6 @@
 import InitModule
 from slackclient import SlackClient
+import copy
 
 import sys
 import time
@@ -41,7 +42,7 @@ class Slack_RTM:
 
     def commandSelect(self,data):
         for mod in self.modules:
-            mod.main(data)
+            mod.main(copy.deepcopy(data))
 
 
 slack_rtm=  Slack_RTM()
