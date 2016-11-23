@@ -20,7 +20,8 @@ class ANON:
         if datadict['text'].startswith("anon ") and datadict['channel'].startswith('D'):#direct message
             datadict.update( {
                 "username": "匿名者 Anonymouser",
-                "icon_emoji": "_e5_8c_bf",
-                "channel": self.channel
+                "icon_emoji": ":_e5_8c_bf:",
+                "channel": self.channel,
+                "text":datadict['text'][5:]
             } )
             self.slack.api_call("chat.postMessage",**datadict)

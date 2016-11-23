@@ -1,6 +1,7 @@
 import shlex
 import json
 import multiprocessing as MP
+from threading import Timer
 
 import votetime_util
 from datetime import datetime as DT
@@ -23,14 +24,10 @@ class VOTE:
                 7:"_e4_b8_83",8:"_e5_85_ab",9:"_e4_b9_9d",
                 10:"_e5_8d_81"}
         #search id
-        self.memberdict = {}
-        for mem in self.slack.api_call("users.list")['members']:
-            self.memberdict[mem['id']] = mem['name']
         self.myid = self.slack.api_call("auth.test")['user_id']
         
         #init and thread
-        self.threadend = MP.Value('i',False)
-        self.thread = None
+        self.timer = None
         self.init()
 
     def init(self):
@@ -54,12 +51,9 @@ class VOTE:
         #time and thread
         self.timestart = None
         self.timeend   = None
-        if self.thread != None:
-            self.thread.terminate()
-            self.thread.join()
-            self.thread = None
-        self.threadend.value = False
-        self.thread = None
+        if self.timer != None:
+            self.timer.cancel()
+            self.timer = None
 
     def emojisAdd(self,names,**payload):
         if not payload:
@@ -121,22 +115,19 @@ class VOTE:
                 raise ValueError("The type is who, meaningless")
             self.onlyone = True
 
-    def endGo(self):
-        while DT.now() <= self.timeend:
-            time.sleep(1)
-        self.threadend.value = True
-
     def timeSet(self,cdata,data):
-        if self.thread != None:
-            raise ValueError("Time has been set")
+        #if self.timer != None:
+        #    raise ValueError("Time has been set")
 
         if cdata == 'duration':
             self.timeend = votetime_util.getRel(data)
         elif cdata == 'endtime':
             self.timeend = votetime_util.getAbs(data)
 
-        self.thread = MP.Process(target=self.endGo)
-        self.thread.start()
+        sec = (self.timeend - DT.now()).total_seconds()
+        if sec < 0: sec = 0
+        self.timer = Timer(sec,self.virutalEnd)
+        self.timer.start()
 
     def titleSet(self,data):
         if self.title:
@@ -171,7 +162,7 @@ class VOTE:
             text += " -> "+str(len(users))
         if showpeople:
             text += " : "
-            text += ",".join(["@"+self.memberdict[u] for u in users])
+            text += ",".join(["<@"+u+">" for u in users])
 
         return text+"\n"
 
@@ -330,6 +321,14 @@ class VOTE:
         self.timestart = DT.now()
         text = self.optionParse("*Vote Start!!*")
         self.messageRecord(text,[e['emoji'] for e in self.options])
+
+    def virutalEnd(self):
+        voteend = {
+                'type' : "message",
+                'channel' : self.channel,
+                'text' : "vote end",
+                "ts"   : self.ts } #no use ts 
+        self.main(voteend)
     
     def voteEnd(self):
         if not self.start :
@@ -379,15 +378,6 @@ class VOTE:
                     self.peoplevote[who] = 0
 
     def main(self,datadict):
-        if self.threadend.value:
-            voteend = {
-                    'type' : "message",
-                    'channel' : self.channel,
-                    'text' : "vote end",
-                    'ts' : self.ts }
-            self.threadend.value = False
-            self.main(voteend)
-
         if datadict['type'] == "reaction_added" :
             self.peoplevoteCount(datadict['reaction'],datadict['item'],datadict['user'])
         if not datadict['type'] == 'message' or 'subtype' in datadict:
@@ -444,7 +434,6 @@ class VOTE:
                             self.voteShow(renew=True,showcount=True)
                     elif data == "end":
                         self.voteEnd()
-                        break;
                     else:
                         raise ValueError(data+" Arugments error")
 

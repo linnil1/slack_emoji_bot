@@ -2,6 +2,7 @@ import facebook
 from datetime import datetime
 from pprint import pprint
 import os
+from threading import Timer
 
 class FBTOSLACK:
     def require():
@@ -15,6 +16,7 @@ class FBTOSLACK:
         self.club = custom['fb_clubid']
         self.interval = int(custom['syncfb_interval']) #unit: second
         self.diff = 5  # the difference between fb and my time
+        self.retry = 5 # retry for error response
 
         # find broadcast channel
         self.channelname = custom['syncfb_channel']
@@ -41,7 +43,12 @@ class FBTOSLACK:
 
     def init(self,token):
         self.graph = facebook.GraphAPI(access_token=token, version="2.7")
+        self.timerSet(self.interval)
         self.stop = 5 
+
+    def timerSet(self,interval):
+        timer = Timer(interval,self.messagePost)
+        timer.start()
 
     def channelFind(self):
         rep = self.slack.api_call("channels.list")
@@ -119,11 +126,15 @@ class FBTOSLACK:
         try:
             feeds = self.graph.get_object(id=self.club+"/feed", fields="message,attachments,permalink_url,from,story,description,type,created_time",since=self.rundata.get("timelog")-self.diff)
             self.rundata.set("timelog",int(datetime.now().strftime("%s")))
+            self.timerSet(self.interval)
             self.stop = 5
         except:
             self.stop = self.stop-1 
             print("error")
-            self.slack.api_call("chat.postMessage",**self.payload_user,text="Token Expired\nUse token=xxx to retoken")
+            if self.stop < 0:
+                self.slack.api_call("chat.postMessage",**self.payload_user,text="Token Expired\nUse token=xxx to retoken")
+            else:
+                self.timerSet(self.retry)
             return 
 
         feeds = feeds['data'] # ignore paging
@@ -131,19 +142,19 @@ class FBTOSLACK:
             pprint(feeds)
         return feeds
 
-    def main(self,datadict):
-        # get token
-        if datadict['type'] == 'message' and datadict['channel'] == self.payload_user['channel'] and datadict['text'].startswith("token="):
-            self.init(datadict['text'][6:])
-            
-        if self.stop < 0 :
-            return 
-        if  int(datetime.now().strftime("%s")) - self.rundata.get("timelog") < self.interval:
-            return 
+    def messagePost(self):
         feeds = self.feedsGet()
+        print(feeds)
         if not feeds:
             return 
 
         messages = [ self.feedToSlack(feed) for feed in reversed(feeds)]
         for message in messages:
             self.slack.api_call("chat.postMessage",**self.payload,**message)
+
+    def main(self,datadict):
+        # get token
+        if datadict['type'] == 'message' and datadict['channel'] == self.payload_user['channel'] and datadict['text'].startswith("token="):
+            self.init(datadict['text'][6:])
+            
+

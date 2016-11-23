@@ -18,9 +18,10 @@ class Slack_RTM:
                 if data and data[0]['type'] not in ['user_typing','reconnect_url','pref_change','presence_change','emoji_changed']:
                     print(data)
                 try:
-                    self.commandSelect(data[0] if data else {"type":None})
                     if not data:
                         time.sleep(1)
+                    else:
+                        commandSelect(data[0])
                 except KeyboardInterrupt:
                     raise
                 except:
@@ -39,11 +40,9 @@ class Slack_RTM:
                 print(sys.exc_info())
                 time.sleep(1)
 
-
     def commandSelect(self,data):
         for mod in self.modules:
             mod.main(copy.deepcopy(data))
-
 
 slack_rtm=  Slack_RTM()
 slack_rtm.start()
