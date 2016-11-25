@@ -21,7 +21,7 @@ class Slack_RTM:
                     if not data:
                         time.sleep(1)
                     else:
-                        commandSelect(data[0])
+                        self.commandSelect(data[0])
                 except KeyboardInterrupt:
                     raise
                 except:

@@ -10,11 +10,13 @@ class FBTOSLACK:
                 {"name":"slack_username"},
                 {"name":"fb_token","default":""},
                 {"name":"syncfb_interval","default":60},
+                {"name":"no_sync_hashtag","default":"#noslacksync"},
                 {"name":"syncfb_channel","default":"random"}]
     def __init__(self,slack,custom):
         self.slack = slack
         self.club = custom['fb_clubid']
         self.interval = int(custom['syncfb_interval']) #unit: second
+        self.hashtag = custom['no_sync_hashtag']
         self.diff = 5  # the difference between fb and my time
         self.retry = 5 # retry for error response
 
@@ -88,6 +90,10 @@ class FBTOSLACK:
         return attachs
 
     def feedToSlack(self,feed):
+        #if feed has tag don't parse
+        if feed.get('message') and feed['message'].find(self.hashtag) >=0  :
+            return {} # empty will not output
+
         # main text
         main = {}
         main['author_name'] = feed['from']['name']
@@ -106,7 +112,7 @@ class FBTOSLACK:
             attachs = self.attachFind(feed['attachments']['data'])
             attachs    = list(filter(None,   attachs))
             for attach in attachs:
-                if attach['dep'] == 0:
+                if attach['dep'] > 0:
                     attach['color']="#0c0c0c"
                 del attach['dep']
             if feed.get('description'):
@@ -144,7 +150,6 @@ class FBTOSLACK:
 
     def messagePost(self):
         feeds = self.feedsGet()
-        print(feeds)
         if not feeds:
             return 
 
