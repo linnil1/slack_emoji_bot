@@ -106,11 +106,23 @@ There are some command :
 
 	anon [text] to command_bot and you will see your data in channel anonymously
 
+* NTU118 module
+
+	NTU118 118restaurant bot
+
+	* 118random       **get a random restaurant**
+	* 118type         **get all type of restaurant**
+	* 118type [type]  **get all restaurant of that type**
+	* 118list         **get all restaurant in 118**
+	* 118find [name]  **list all restaurant which match**
+	* 18info [name]   **get detailed of that restaurant**
+	* 118help         **get help**
+
 The usage is write inside the command
 
 Usually, you can type xxhelp for help
 
-Please send message "old 算課牛食篆轉我好中不一二三四五六七八九十票行廢同"
+Please send message "old 巷算課牛食篆轉我好中不一二三四五六七八九十票行廢同"
 when you first run it
 
 # create new module

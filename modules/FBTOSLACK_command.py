@@ -10,13 +10,15 @@ class FBTOSLACK:
                 {"name":"slack_username"},
                 {"name":"fb_token","default":""},
                 {"name":"syncfb_interval","default":60},
-                {"name":"no_sync_hashtag","default":"#noslacksync"},
+                {"name":"sync_auto","default":'True'},
+                {"name":"sync_hashtag","default":"#SyncToSlack"},
                 {"name":"syncfb_channel","default":"random"}]
     def __init__(self,slack,custom):
         self.slack = slack
         self.club = custom['fb_clubid']
         self.interval = int(custom['syncfb_interval']) #unit: second
-        self.hashtag = custom['no_sync_hashtag']
+        self.hashtag = custom['sync_hashtag']
+        self.auto = custom['sync_auto'] == "Ture"
         self.diff = 5  # the difference between fb and my time
         self.retry = 5 # retry for error response
 
@@ -91,8 +93,11 @@ class FBTOSLACK:
 
     def feedToSlack(self,feed):
         #if feed has tag don't parse
-        if feed.get('message') and feed['message'].find(self.hashtag) >=0  :
-            return {} # empty will not output
+        if feed.get('message'): 
+            if self.auto == True and feed['message'].find(self.hashtag) >= 0 :
+                return {} # empty will not output
+            if self.auto == False and feed['message'].find(self.hashtag) ==-1:
+                return {}
 
         # main text
         main = {}

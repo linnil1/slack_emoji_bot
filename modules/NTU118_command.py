@@ -15,7 +15,12 @@ class NTU118:
             'Cookie': 'csrftoken=tJ6xOJKM41IdEaEcL7lge9uSAw3gRJwD'})
 
     def listGet(self):
-        return self.req.post("https://118restaurant.ntu.edu.tw/restaurant/get_list",headers={'Referer': 'https://118restaurant.ntu.edu.tw/home'}).json()['content']
+        listdata = self.req.post("https://118restaurant.ntu.edu.tw/restaurant/get_list",headers={'Referer': 'https://118restaurant.ntu.edu.tw/home'}).json()['content']
+        for i in listdata: # there are some not type QQ
+            if not i['food_type']:
+                i['food_type'] = "其他"
+            i['name'].strip() # name has not stripped
+        return listdata
     
     def mainParse(self,store):
         text = "*"+store['name']+"*\n"
@@ -56,18 +61,73 @@ class NTU118:
 
         return arr
 
+    def listParse(self,l):
+        return ", ".join(l) if len(l) else "Not found"
+
+    def typeGet(self,type_name=""):
+        l = self.listGet()
+        if type_name: # find restaurant of that type 
+            return [ i['name'] for i in l if i['food_type']==type_name ]
+        # list types
+        return list(set([ i['food_type'] for i in l ]))
+    
+    def foodFind(self,name):
+        l = self.listGet()
+        match = [ i for i in l if name and i['name'].find(name)>=0 ]
+        if len(match) != 1 :
+            return {'text':self.listParse([i['name'] for i in match])}
+        return self.mainParse(match[0])
+
+    def allList(self): # sorted by type
+        dic = {}
+        for r in self.listGet():
+            if not dic.get(r['food_type']):
+                dic[r['food_type']] = []
+            dic[r['food_type']].append(r['name'])
+        s = ""
+        for k, v in dic.items():
+            s += "*"+k+"* "
+            s += ", ".join(v)+"\n"
+        return s
+
     def main(self,datadict):
         if not datadict['type'] == 'message' or 'subtype' in datadict:
             return 
 
-        if datadict['text'].startswith("118random"):
-            payload = {
-                "username": "NTU118 Eater",
-                "icon_emoji": ":_e5_b7_b7:",
-                "channel": datadict['channel']
-            }
+        payload = {
+            "username": "NTU118 Eater",
+            "icon_emoji": ":_e5_b7_b7:",
+            "channel": datadict['channel']
+        }
+        text_input = datadict['text']
+
+        if text_input.startswith("118help"):
+            text = """
+`118random     ` get a random restaurant
+`118type       ` get all type of restaurant
+`118type [type]` get all restaurant of that type
+`118list       ` get all restaurant in 118
+`118find [name]` list all restaurant which match
+`118info [name]` get detailed of that restaurant
+`118help       ` get help"""
+            self.slack.api_call("chat.postMessage",**payload,text=text)
+
+        elif text_input.startswith("118random"):
             textload = self.mainParse( random.choice(self.listGet()) )
             print(textload)
+            self.slack.api_call("chat.postMessage",**payload,**textload)
+
+        elif text_input.startswith("118type"):
+            data = re.findall(r"(?<=118type).*",text_input,re.DOTALL)[0].strip()
+            self.slack.api_call("chat.postMessage",**payload,text=self.listParse(self.typeGet(data)))
+        
+        elif text_input.startswith("118list"):
+            textload = self.allList()
+            self.slack.api_call("chat.postMessage",**payload,text=textload)
+        
+        elif re.search("^118find |^118info ",text_input):
+            data = re.search(r"((?<=118find )|(?<=118info )).*",text_input,re.DOTALL).group().strip()
+            textload = self.foodFind(data)
             self.slack.api_call("chat.postMessage",**payload,**textload)
 
 # test this for parse text is correct 
