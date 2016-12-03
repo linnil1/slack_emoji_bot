@@ -88,7 +88,7 @@ class NTU118:
         for k, v in dic.items():
             s += "*"+k+"* "
             s += ", ".join(v)+"\n"
-        return s
+        return s+"https://118restaurant.ntu.edu.tw/home"
 
     def main(self,datadict):
         if not datadict['type'] == 'message' or 'subtype' in datadict:

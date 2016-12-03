@@ -15,7 +15,7 @@ sys.path.insert(0, './common/')
 import password_crypt 
 import copy
 
-wantname = "NTU118"
+wantname = ["SLPY"]
 
 class Slack_RTM:
     def __init__(self):
@@ -24,7 +24,7 @@ class Slack_RTM:
 
         im = []
         for i in imports:
-            if( i['name'] in ["",wantname] ):
+            if( i['name'] in ["",*wantname] ):
                 im.append(i)
         imports = im
 

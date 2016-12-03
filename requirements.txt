@@ -8,3 +8,4 @@ jieba
 imgurpython
 cowpy
 facebook-sdk
+slpy
