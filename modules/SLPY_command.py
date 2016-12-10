@@ -10,7 +10,7 @@ class SLPY:
         self.slack = slack
         self.payload = {
             "username": "蒸汽火車 Steam Locomotive",
-            "icon_emoji": ":e7_9f_af:"
+            "icon_emoji": ":_e8_bb_8a:"
         }
         self.col = int(custom['sl_col'])
         self.row = int(custom['sl_row'])
@@ -37,8 +37,22 @@ class SLPY:
             return 
 
         if self.run:
-            self.slack.api_call("chat.update",**self.payload,text = "Wait")
+            self.slack.api_call("chat.postMessage",
+                    **self.payload,channel=datadict['channel'],text="Wait")
             return 
+        
+        if datadict['text'].find("help") >=0:
+            self.slack.api_call("chat.postMessage",
+                    **self.payload,channel=datadict['channel'],text="""```
+slpy 
+  -r random flags
+  -d add dance people
+  -l add more locomotives 
+     (number of l = number of loco)
+  -F Fly
+  -c 
+  -a add people cry for help```""")
+            return None
 
         self.payload['channel'] =  datadict['channel']
         pre = self.slack.api_call("chat.postMessage",**self.payload,text="start")

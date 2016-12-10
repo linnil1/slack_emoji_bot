@@ -122,7 +122,8 @@ The usage is write inside the command
 
 Usually, you can type xxhelp for help
 
-Please send message "old 巷算課牛食篆轉我好中不一二三四五六七八九十票行廢同"
+Please send message "old 巷算課牛食篆轉我好中不一二三四五六七八九十票行廢同車"
+
 when you first run it
 
 # create new module

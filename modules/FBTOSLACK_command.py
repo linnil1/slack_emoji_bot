@@ -75,14 +75,17 @@ class FBTOSLACK:
         attachs = []
         for data in datarr:
             attach = {}
+            if data.get('description'):
+                attach['text'] = feed['description'] + "\n"
+            else:
+                attach['text'] = ""
             if data.get('media') and data['media'].get('image'):
-                attach["title"] = "Images"
                 attach['image_url'] = data['media']['image']['src']
                 if data['type'] == "video_inline":
-                    attach['text'] = "<"+data['url']+"|Click link to see videos>"
+                    attach['text'] += "<"+data['url']+"|Click link to see videos>"
                 else:
-                    attach['text'] = "Image"
-                attach['dep'] = dep
+                    attach['text'] += "Image"
+            attach['dep'] = dep
 
             attachs.append(attach)
 
@@ -92,10 +95,12 @@ class FBTOSLACK:
         return attachs
 
     def feedToSlack(self,feed):
-        #if feed has tag don't parse
+        #hashtag
         if feed.get('message'): 
-            if self.auto == True and feed['message'].find(self.hashtag) >= 0 :
+            # sync when hashtag not found
+            if self.auto == True  and feed['message'].find(self.hashtag) >= 0:
                 return {} # empty will not output
+            # sync when hashtag found
             if self.auto == False and feed['message'].find(self.hashtag) ==-1:
                 return {}
 
@@ -109,19 +114,19 @@ class FBTOSLACK:
             main['text'] += '_'+feed.get('story')+"_\n"
             main['mrkdwn_in'] = ["text"]
         if feed.get('message'):
-            main['text'] += feed.get('message')
+            main['text'] += feed.get('message') + "\n"
+        if feed.get('description'):
+            main['text'] += feed['description'] 
 
         # attachments
         attachs = []
         if feed.get('attachments'):
             attachs = self.attachFind(feed['attachments']['data'])
-            attachs    = list(filter(None,   attachs))
+            attachs = list(filter(None,   attachs))
             for attach in attachs:
                 if attach['dep'] > 0:
                     attach['color']="#0c0c0c"
                 del attach['dep']
-            if feed.get('description'):
-                attachs.insert(0,{'text':feed['description'],'color':"#0c0c0c"})
             
         attachs = [main]+attachs
         attachs[-1]['footer'] = feed['created_time'] + "'\n<"+feed['permalink_url']+"|FB_link>"
