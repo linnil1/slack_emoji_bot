@@ -118,11 +118,16 @@ There are some command :
 	* 18info [name]   **get detailed of that restaurant**
 	* 118help         **get help**
 
+* RANDOM module
+
+	* random( [start [,end [,step ]]] )
+	* random.choice( [option0,...] , num )
+
 The usage is write inside the command
 
 Usually, you can type xxhelp for help
 
-Please send message "old 巷算課牛食篆轉我好中不一二三四五六七八九十票行廢同車"
+Please send message "old 巷算課牛食篆轉我好中不一二三四五六七八九十票行廢同車亂"
 
 when you first run it
 
@@ -145,7 +150,7 @@ privacy object :
 { 
   'name': "APPID", # name should not use data
   'secret': True, # it will not show on console when writing
-  'desp' : "xxx uuuu werwerf skdjfslkdjf",
+  'desp' : "xxx uuuu werwerf skdjfslkdjf", #describition of the key
   'default' : "123" # this will return string
   'module' : True # this will return the class in common/ and module name is name
 }
