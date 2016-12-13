@@ -17,9 +17,9 @@ def getRel(datastr):
         nowstr = nowstr[r.end():].strip()
 
     convert = {
-            'Y':'years' ,'h':'hours'  ,
-            'M':'months','m':'minutes',
-            'D':'days'  ,'s':'seconds'}
+        'Y':'years' ,'h':'hours'  ,
+        'M':'months','m':'minutes',
+        'D':'days'  ,'s':'seconds'}
 
     for sub in convert:
         if sub not in resultdic:
@@ -27,7 +27,7 @@ def getRel(datastr):
         else:
             resultdic[convert[sub]] = resultdic.pop(sub)
 
-    return DT.now() + timeRel(**resultdic)
+    return timeRel(**resultdic)
 
 def strParse(datastr):
     """ support
