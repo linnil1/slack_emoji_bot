@@ -163,7 +163,7 @@ class Myrandom:
         return """
 random( [start [,end [,step ]]] )
 random.sample( num,[start [,end [,step ]]] )
-random.choice( (option0,...) [, num] )"""
+random.choice( list [, num] )"""
 
 class RANDOM:
     def require():

@@ -122,13 +122,33 @@ There are some command :
 
 	* random( [start [,end [,step ]]] )
 	* random.choice( [option0,...] , num )
+	* random.sample( num [,start [,end [,step ]]] )
+	* randomhelp
 
-The usage is write inside the command
+* Translate module
+
+	* translate text
+	* translate text --from=en --to=zh-TW 
+	* translatehelp
+
+The usage is also write inside the command
 
 Usually, you can type xxhelp for help
 
-Please send message "old 巷算課牛食篆轉我好中不一二三四五六七八九十票行廢同車亂"
+# how to run it
 
+First, Initize it.
+```
+pip3 install -r requirement.txt
+cd common/
+npm install google-translate-api
+cd ..
+```
+
+And, Run it
+`python3 slack_server.py`
+
+Please send message "old 巷算課牛食篆轉我好中不一二三四五六七八九十票行廢同車亂譯"
 when you first run it
 
 # create new module
