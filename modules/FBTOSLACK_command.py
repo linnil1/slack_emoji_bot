@@ -18,7 +18,7 @@ class FBTOSLACK:
         self.club = custom['fb_clubid']
         self.interval = int(custom['syncfb_interval']) #unit: second
         self.hashtag = custom['sync_hashtag']
-        self.auto = custom['sync_auto'] == "Ture"
+        self.auto = custom['sync_auto'] == "True"
         self.diff = 5  # the difference between fb and my time
         self.retry = 5 # retry for error response
 

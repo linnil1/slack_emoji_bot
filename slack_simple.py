@@ -15,7 +15,7 @@ sys.path.insert(0, './common/')
 import password_crypt 
 import copy
 
-wantname = ["TRANSLATE","Translate"]
+wantname = ["COURSE"]
 
 class Slack_RTM:
     def __init__(self):
