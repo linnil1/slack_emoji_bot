@@ -34,11 +34,14 @@ There are some command :
  	Use this module to vote
     * vote xxx oooo xxx
     * votehelp 
-* 社課 module
+* 社課 社聚 module
 
 	 Output the class this time
 
 	 Just type "社課"
+	 
+	 Just type "社聚"
+
 
 * Food module
  	
@@ -130,6 +133,17 @@ There are some command :
 	* translate text
 	* translate text --from=en --to=zh-TW 
 	* translatehelp
+
+* REGEX module
+
+	Extend Slackbot response
+	
+	*python syntax of regex*
+
+	* Use `""` as regex keyword
+	* `{{who}}` for the name of who trigger the resopnse
+	* `{{all}}` for the all text of what trigger
+	* `{{1}}` for first match
 
 The usage is also write inside the command
 
