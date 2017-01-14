@@ -46,6 +46,7 @@ def logIn(needprivacy):
     if dict_privacy.get("hash"):
         hashdata  = b64decode(dict_privacy['hash'])
         dict_hash = json.loads(decrypt(password,hashdata).decode("utf8"))
+        #print(dict_hash)
 
     # get new data
     new_privacy = {'hash':dict_privacy['hash']} if dict_privacy.get("hash") else {}

@@ -76,7 +76,7 @@ class FBTOSLACK:
         for data in datarr:
             attach = {}
             if data.get('description'):
-                attach['text'] = feed['description'] + "\n"
+                attach['text'] = data['description'] + "\n"
             else:
                 attach['text'] = ""
             if data.get('media') and data['media'].get('image'):
