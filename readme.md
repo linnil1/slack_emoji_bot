@@ -107,7 +107,9 @@ There are some command :
 
 	anonymous send data to the channel
 
-	anon [text] to command_bot and you will see your data in channel anonymously
+	* anon [text] to command_bot and you will see your data in channel anonymously
+
+	* anon --who=name [text] to command_bot and you can post message with others name
 
 * NTU118 module
 

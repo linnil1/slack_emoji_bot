@@ -15,7 +15,8 @@ sys.path.insert(0, './common/')
 import password_crypt 
 import copy
 
-wantname = ["REGEXBOT","CustomResponse"]
+#wantname = ["REGEXBOT","CustomResponse"]
+wantname = ["ANON"]
 
 class Slack_RTM:
     def __init__(self):
