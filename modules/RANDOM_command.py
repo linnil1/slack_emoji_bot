@@ -57,7 +57,7 @@ class Myrandom:
         if len(arg) >3:
             raise TypeError("Too many args")
         if len(arg)==0 or ( len(arg)==1 and  not arg[0].strip() ) :
-            arg = []
+            arg.clear() # arg = [] not work
             return False
             
         isint = True
@@ -179,25 +179,24 @@ class RANDOM:
         if not datadict['type'] == 'message' or 'subtype' in datadict:
             return 
 
-        if datadict['text'] == "randomhelp":
-            self.slack.api_call("chat.postMessage",
-                **self.payload,
-                channel=datadict['channel'],
-                text='```'+Myrandom.help()+'```' )
+        if datadict['text'].startswith("random"):
+            if datadict['text'] == "randomhelp" or datadict['text'] == "random":
+                text='```'+Myrandom.help()+'```' 
+            else:
+                try:
+                    arr = Myrandom.lineParse(datadict['text'])
+                except:
+                    arr = sys.exc_info()[1]
 
-        elif datadict['text'].startswith("random"):
-            try:
-                arr = Myrandom.lineParse(datadict['text'])
-            except:
-                arr = sys.exc_info()[1]
-
-            if type(arr) is list:
-                arr = ", ".join( ['`'+str(i)+'`' for i in arr] )
+                if type(arr) is list:
+                    arr = ", ".join( ['`'+str(i)+'`' for i in arr] )
+                text = str(arr)
 
             self.slack.api_call("chat.postMessage",
                 **self.payload,
+                thread_ts=datadict.get("thread_ts")or'',
                 channel=datadict['channel'],
-                text=str(arr) )
+                text=text )
 
 """ for test
 from RANDOM_command import Myrandom

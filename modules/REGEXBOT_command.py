@@ -15,6 +15,7 @@ class REGEXBOT:
         self.customResponse = custom['CustomResponse']
         self.ori_response = []
         self.response = []
+        self.no_response = []
         self.messageCheck() # this also call timeSet
         self.member = {}
         for mem in self.slack.api_call("users.list")['members']:
@@ -25,6 +26,7 @@ class REGEXBOT:
         if data != self.ori_response:
             self.ori_response = data
             self.response = []
+            self.no_response = []
             # find regex in trigger
             for rep in data:
                 newdata = { 'responses' : rep['responses'] , 'triggers': [] }
@@ -34,6 +36,8 @@ class REGEXBOT:
                             newdata['triggers'].append( re.compile(tri[1:-1]) )
                         except:
                             pass
+                    else:
+                        self.no_response.append(tri)
                 if newdata['triggers']:
                     self.response.append( newdata )
             pprint(self.response)
@@ -67,6 +71,9 @@ class REGEXBOT:
         if not datadict['type'] == 'message' or 'subtype' in datadict:
             return 
 
+        if any( t in self.no_response for t in re.findall("\w+",datadict['text']) ):
+            return 
+
         # find valid string
         result,response = None,""
         #use async because some bad regex can destroy this module
@@ -92,5 +99,6 @@ class REGEXBOT:
                 "username": "slackbot RE",
                 "icon_url": "https://a.slack-edge.com/ae7f/plugins/slackbot/assets/service_512.png",
                 "channel": datadict['channel'],
+                "thread_ts":datadict.get("thread_ts")or'',
                 "text":responseok
             } )

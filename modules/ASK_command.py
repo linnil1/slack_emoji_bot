@@ -155,6 +155,7 @@ If your want to choose the meaning in `Did you mean?`
         payload = {
             "username": "WolframAlpha Answer",
             "icon_emoji": ":_e7_ae_97:",
+            "thread_ts":datadict.get("thread_ts") or '',
             "channel": datadict['channel']}
 
         if not answer:

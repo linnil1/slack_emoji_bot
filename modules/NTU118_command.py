@@ -97,6 +97,7 @@ class NTU118:
         payload = {
             "username": "NTU118 Eater",
             "icon_emoji": ":_e5_b7_b7:",
+            "thread_ts":datadict.get("thread_ts")or'',
             "channel": datadict['channel']
         }
         text_input = datadict['text']

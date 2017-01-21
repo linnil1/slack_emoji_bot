@@ -131,6 +131,7 @@ class OLD:
         payload = {
             "channel": datadict['channel'],
             "username": "小篆transformer",
+            "thread_ts":datadict.get("thread_ts")or'',
             "icon_emoji": ":_e7_af_86:"}
         text = datadict['text']
 

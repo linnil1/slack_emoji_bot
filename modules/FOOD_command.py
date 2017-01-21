@@ -118,6 +118,7 @@ class FOOD:
             payload = {
                     "username": "食物 Midnight",
                     "icon_emoji": ":_e9_a3_9f:",
+                    "thread_ts":datadict.get("thread_ts")or'',
                     "channel": datadict['channel']}
 
             try:

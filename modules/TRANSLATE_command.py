@@ -48,6 +48,7 @@ class TRANSLATE:
             self.slack.api_call("chat.postMessage",
                     text = trans,
                     channel = datadict['channel'],
+                    thread_ts=datadict.get("thread_ts")or'',
                     **self.payload )
         if datadict['text'] == "translatehelp":
             helptext = """ ```
@@ -55,6 +56,7 @@ translate text
 translate text --from=en --to=zh-TW ``` """
             self.slack.api_call("chat.postMessage",
                     text = helptext,
+                    thread_ts=datadict.get("thread_ts"),
                     channel = datadict['channel'],
                     **self.payload )
 

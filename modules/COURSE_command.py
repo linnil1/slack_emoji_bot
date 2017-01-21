@@ -76,6 +76,7 @@ class COURSE:
                 text = self.courseParse(), **{
                     "channel"  : datadict['channel'],
                     "timestamp": datadict['ts'],
+                    "thread_ts":datadict.get("thread_ts")or'',
                     "username" : "社課社聚 Reminder",
                     "icon_emoji": ":_e8_aa_b2:"},
                 attachments = [{

@@ -16,7 +16,8 @@ import password_crypt
 import copy
 
 #wantname = ["REGEXBOT","CustomResponse"]
-wantname = ["ANON"]
+#wantname = ["ANON"]
+wantname=["RANDOM"]
 
 class Slack_RTM:
     def __init__(self):
@@ -39,9 +40,11 @@ class Slack_RTM:
                 data = self.slack.rtm_read()
                 if data and data[0]['type'] not in ['user_typing','reconnect_url','pref_change','presence_change','emoji_changed']:
                     print(data)
-                self.commandSelect(data[0] if data else {"type":None})
+
                 if not data:
                     time.sleep(1)
+                else:
+                    self.commandSelect(data[0])
         else:
             print("Connect Error! Please Reconnect")
 

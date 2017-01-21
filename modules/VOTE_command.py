@@ -350,6 +350,7 @@ vote add "Tainan"
             self.timeend = VOTETIME("END")
         self.start = "END" # hack
 
+# TODO need to rewrite with Slack thread
 class VOTE:
     def require():
         return []
