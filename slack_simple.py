@@ -17,7 +17,7 @@ import copy
 
 #wantname = ["REGEXBOT","CustomResponse"]
 #wantname = ["ANON"]
-wantname=["RANDOM"]
+wantname=["LATEX","Imgur"]
 
 class Slack_RTM:
     def __init__(self):
