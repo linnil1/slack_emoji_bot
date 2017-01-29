@@ -356,6 +356,7 @@ class VOTE:
         return []
     def __init__(self,slack,custom=None):
         self.slack= slack
+        self.colorPrint = custom['colorPrint']
         self.payload = {
             "username" : "投票voter",
             "icon_emoji": ":_e7_a5_a8:"}
@@ -478,7 +479,7 @@ class VOTE:
 
         try:
             datarr = shlex.split(text)
-            print(datarr)
+            self.colorPrint("Split words",datarr)
         except ValueError as er:
             self.post(er.__str__(),datadict['channel'])
             return 
@@ -520,6 +521,8 @@ class VOTE:
                 else:
                     raise ValueError(data+" not found")
 
+                self.colorPrint("Config",self.config)
+
             except IndexError as er:
                 self.post("Arguments error",datadict['channel'])
                 return 
@@ -528,4 +531,3 @@ class VOTE:
                 return 
 
             index+=1
-        print(self.config)

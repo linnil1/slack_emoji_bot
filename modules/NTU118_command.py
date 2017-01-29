@@ -7,6 +7,7 @@ class NTU118:
         return []
     def __init__(self,slack,custom):
         self.slack = slack
+        self.colorPrint = custom['colorPrint']
         self.req = requests.Session()
         self.req.headers.update({
             'X-CSRFToken': 'tJ6xOJKM41IdEaEcL7lge9uSAw3gRJwD',
@@ -16,7 +17,8 @@ class NTU118:
 
     def listGet(self):
         listdata = self.req.post("https://118restaurant.ntu.edu.tw/restaurant/get_list",headers={'Referer': 'https://118restaurant.ntu.edu.tw/home'}).json()['content']
-        for i in listdata: # there are some not type QQ
+        self.colorPrint("original Restaurant",listdata)
+        for i in listdata: # there are some items without type QQ
             if not i['food_type']:
                 i['food_type'] = "其他"
             i['name'].strip() # name has not stripped
@@ -115,7 +117,6 @@ class NTU118:
 
         elif text_input.startswith("118random"):
             textload = self.mainParse( random.choice(self.listGet()) )
-            print(textload)
             self.slack.api_call("chat.postMessage",**payload,**textload)
 
         elif text_input.startswith("118type"):

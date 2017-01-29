@@ -11,11 +11,14 @@ import RunData
 from slackclient import SlackClient
 class SLACK():
     def require():
-        return [{"name":"TOKEN","secret":True}]
+        return [{"name":"TOKEN","secret":True},
+                {"name":"reportchannel","default":"workstation"}]
     def __init__(self,privacy):
         self._slack = SlackClient(privacy['TOKEN'])
+        self.reportchannel = privacy['reportchannel']
     def api_call(self,*args,**kwargs):
         return self._slack.api_call(*args,**kwargs)
+from ColorPrint import *
 
 def importGet():
     imports = [{
@@ -51,6 +54,8 @@ def requireGet(imports):
     for require in imports:
         reqs = copy.deepcopy(require['require'])
         for req in reqs:
+            if req['name'] in ['colorPrint','data']:
+                raise ValueError("require name cannot be "+req['name'])
             req['name'] = require['name']+"_"+req['name']
         requires.extend(reqs)
     return requires
@@ -68,17 +73,21 @@ def initGet(privacy,imports):
     commons = {}
     for module in imports:
         if module['type'] == 'common':
-            commons[ module['name'] ] = (
-                module['class'](privacyFilter(privacy,module)) )
+            pri = privacyFilter(privacy,module)
+            pri.update({"colorPrint":setPrint(module['name'])})
+            commons[ module['name'] ] = module['class'](pri)
 
-    slack = commons[''] # ??
+    slack = commons[''] # root
     database = RunData.RunDataBase()
 
     modules = []
     for module in imports:
         if module['type'] != 'common':
             pri = privacyFilter(privacy,module,commons)
-            pri.update({"data":RunData.RunData(database,module['name'])}) # add rundata module in every module
+            # add rundata module in every module
+            pri.update({"data":RunData.RunData(database,module['name'])}) 
+            # add colorPrint
+            pri.update({"colorPrint":setPrint(module['name'])})
             modules.append( module['class'](slack,pri) )
     return modules 
 

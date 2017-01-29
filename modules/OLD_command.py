@@ -1,6 +1,3 @@
-#!/usr/bin/python
-# -*- coding: utf-8  -*-
-
 from oldreact_util import oldreact
 import oldtime_util 
 import urllib.request
@@ -15,7 +12,6 @@ from multiprocessing import Process,Queue
 import oldgif_util
 import math
 
-
 class OLD:
     def require():
         return [{"name":"Emoji","module":True}]
@@ -24,6 +20,7 @@ class OLD:
         self.dir = "data/word_data/"
         self.keyword = "old"
         self.slack  = slack
+        self.colorPrint = custom['colorPrint']
         self.emoji = custom['Emoji']
         self.oldreact = oldreact(self,slack)
 
@@ -31,7 +28,7 @@ class OLD:
         return urllib.parse.quote(word).lower().replace("%","_")
 
     def imageDownload(self,word):
-        print("Download "+word)
+        self.colorPrint("Download Image",word)
         webword = urllib.parse.quote(word).lower()
         geturl = "http://xiaoxue.iis.sinica.edu.tw" + "/ImageText2/ShowImage.ashx?text="+webword+"&font=%e5%8c%97%e5%b8%ab%e5%a4%a7%e8%aa%aa%e6%96%87%e5%b0%8f%e7%af%86&size=36&style=regular&color=%23000000"
 
@@ -40,9 +37,9 @@ class OLD:
     def messageWord(self,word):
         filename= self.filenameTo(word)
         wordlen = len(open(self.dir+filename,"rb").read())
-        print(word + "pnglen = "+str(wordlen))
+        self.colorPrint("PNG Size",word +" = "+str(wordlen))
         if wordlen<140:
-            print(word+" not found")
+            self.colorPrint("Word not found",word,color="OKBLUE")
             return word
         else:
             return  ":"+filename+":"
@@ -50,15 +47,15 @@ class OLD:
     def imageProcess(self,word,queue):
         if word in string.printable:
             queue.put((word,word))
-            return #for secure problem
+            return #for secure problem like ../
         filename = self.filenameTo(word)
         file_noexist = not os.path.isfile(self.dir+filename)
-        print(word + "noexist = ",file_noexist)
+        self.colorPrint("Word not exist",word+" = "+str(file_noexist))
         if file_noexist:
             self.imageDownload(word)
         message = self.messageWord(word)
         if file_noexist and len(message)!=1 :
-            print(filename +">>"+ self.emoji.upload(self.dir,filename))
+            self.colorPrint("Emoji upload",filename +" >> "+ self.emoji.upload(self.dir,filename))
         queue.put((word,message))
 
     def imageUpDown(self,qstr):
@@ -116,9 +113,9 @@ class OLD:
 
         if not os.path.isfile(self.dir+hashname):
             oldgif_util.gifGet(onlyemoji,giftime,self.dir,hashname)
-            self.emoji.upload(self.dir,hashname)
+            self.colorPrint("Emoji upload",filename +" >> "+ self.emoji.upload(self.dir,hashname))
 
-        print("giflen = "+str(len(onlyemoji)))
+        self.colorPrint("GIF words",'('+len(onlyemoji)+')'+onlyemoji)
         return ':'+hashname+':'
 
     def main(self,datadict):
@@ -142,8 +139,7 @@ class OLD:
                 
             data = re.search(r"(?<=old ).*",text,re.DOTALL).group().strip()
             payload["text"    ] = self.imageUpDown(data)
-            print(payload['text'])
-            print(self.slack.api_call("chat.postMessage",**payload))
+            self.slack.api_call("chat.postMessage",**payload)
 
         elif text.startswith("oldask "):
             data = re.search(r"(?<=oldask ).*",text).group().strip()
@@ -151,7 +147,7 @@ class OLD:
                 udata = "%{}%{}%{}".format(data[0:2],data[2:4],data[4:6])
                 data = urllib.parse.unquote(udata)
                 payload["text"] = self.imageUpDown(data)+" = "+data+" = "+udata
-                print(self.slack.api_call("chat.postMessage",**payload))
+                self.slack.api_call("chat.postMessage",**payload)
         
         elif text.startswith("oldreact "):
             data = re.search(r"(?<=oldreact ).*",text,re.DOTALL).group().strip()
@@ -164,13 +160,13 @@ class OLD:
             onlyemoji = re.findall(r":(\w+):",futuretext)
             for emojiname in onlyemoji:
                 payload['name'] = emojiname 
-                print(self.slack.api_call("reactions.add",**payload))
+                self.slack.api_call("reactions.add",**payload)
 
             #for recursive use
             if futuretext.startswith("old "):
                 payload['username'] += "_recursive"
                 payload['text'] = re.search(r"(?<=old ).*",futuretext,re.DOTALL).group().strip()
-                print(self.slack.api_call("chat.postMessage",**payload))
+                self.slack.api_call("chat.postMessage",**payload)
 
 
         elif text.startswith("oldset "):
@@ -193,7 +189,7 @@ class OLD:
             transdata = transdata[1:-1]  ## get rid of ::
 
             payload['text'] = self.emoji.setalias(transdata,two[1])
-            print(self.slack.api_call("chat.postMessage",**payload))
+            self.slack.api_call("chat.postMessage",**payload)
         
         elif text.startswith("oldhelp"):
             text ="""
@@ -227,8 +223,7 @@ class OLD:
             except ValueError:
                 return 
             payload["text"] = self.imageUpDown(nowstr)
-            print(payload['text'])
-            print(self.slack.api_call("chat.postMessage",**payload))
+            self.slack.api_call("chat.postMessage",**payload)
 
         elif text.startswith("oldgif "):
             data = re.search(r"(?<=oldgif ).*",text,re.DOTALL).group().strip()
@@ -238,7 +233,7 @@ class OLD:
             except ValueError as er:
                 payload['text'] = self.messagePost(er.__str__())
 
-            print(self.slack.api_call("chat.postMessage",**payload))
+            self.slack.api_call("chat.postMessage",**payload)
         
         elif text.startswith("oldgifreact "):
             data = re.search(r"(?<=oldgifreact ).*",text,re.DOTALL).group().strip()
@@ -251,4 +246,4 @@ class OLD:
             onlyemoji = re.findall(r":(.*?):",self.gifMake(futuretext))
 
             payload['name'] = onlyemoji[0]
-            print(self.slack.api_call("reactions.add",**payload))
+            self.slack.api_call("reactions.add",**payload)

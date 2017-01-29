@@ -7,6 +7,7 @@ class ANON:
     def __init__(self,slack,custom):
         self.slack = slack
         self.channel = self.channelFind(custom['channelname'])
+        self.colorPrint = custom['colorPrint']
         self.parser = None
         self.initParse()
 
@@ -49,6 +50,7 @@ class ANON:
                     'icon_url': c['profile']['image_72'],
                     'icon_emoji': ""  # remove emoji by hacking
                     }
+        self.colorPrint("Person not Find",name,color="WARNING")
         return {}
 
     def main(self,datadict):
@@ -64,7 +66,7 @@ class ANON:
 
             try:
                 textin = self.parser.parse_args(shlex.split(datadict['text'][5:]))
-                print(textin)
+                self.colorPrint("Input data",textin)
 
             except SystemExit as er:
                 outtext['text']  = "Bad syntax"

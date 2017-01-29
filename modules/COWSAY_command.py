@@ -44,7 +44,7 @@ def cowsay_init():
                         action="store_true")
     return  parser
 
-def cowsay_main(parser,argtext):
+def cowsay_main(parser,argtext,colorPrint):
     arglist = argtext.split()
     if "-h" in arglist or "--help" in arglist:
         return parser.format_help()
@@ -76,12 +76,11 @@ def cowsay_main(parser,argtext):
     if args.random:
         return (milk_random_cow(msg, sfw=sfw))
 
-    answer = (cow(eyes=args.eyes,
-          tongue=args.tongue,
-          thoughts=args.thoughts
-              ).milk(msg)
-          )
-    print(answer)
+    answer = cow(eyes=args.eyes,
+                tongue=args.tongue,
+              thoughts=args.thoughts
+             ).milk(msg)
+    colorPrint("COW ASCII",answer)
     return answer
 
 #cowsay_main('-t 123'.split())
@@ -92,6 +91,7 @@ class COWSAY:
     def __init__(self,slack,custom):
         self.slack = slack
         self.parser = cowsay_init()
+        self.colorPrint = custom['colorPrint']
 
     def main(self,datadict):
         if not datadict['type'] == 'message' or 'subtype' in datadict:
@@ -104,5 +104,6 @@ class COWSAY:
                 "username": "Cowww Say",
                 "icon_emoji": ":_e7_89_9b:",
                 "channel": datadict['channel'],
-                "text":'```'+cowsay_main(self.parser,text)+'```'}
+                "thread_ts":datadict.get("thread_ts") or '',
+                "text":'```'+cowsay_main(self.parser,text,colorPrint)+'```'}
             self.slack.api_call("chat.postMessage",**payload)

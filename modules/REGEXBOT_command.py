@@ -2,7 +2,6 @@ from concurrent.futures import ThreadPoolExecutor, wait, _base
 from threading import Timer
 import re
 import random
-from pprint import pprint
 from functools import partial
 
 class REGEXBOT:
@@ -11,6 +10,7 @@ class REGEXBOT:
                 {'name':"interval",'default':'60'}]
     def __init__(self,slack,custom):
         self.slack = slack
+        self.colorPrint = custom['colorPrint']
         self.interval = int( custom['interval'] )
         self.customResponse = custom['CustomResponse']
         self.ori_response = []
@@ -40,7 +40,7 @@ class REGEXBOT:
                         self.no_response.append(tri)
                 if newdata['triggers']:
                     self.response.append( newdata )
-            pprint(self.response)
+            self.colorPrint("Regex Response",self.response)
 
         self.timeSet()
 
@@ -49,7 +49,7 @@ class REGEXBOT:
         timer.start()
 
     def responseReplace(self,match,result,datadict={}):
-        print(match.group(1))
+        self.colorPrint("Replace Word",match.group(1))
         try:
             if match.group(1).strip() == "who": # it can't use parse = full
                 return '<@'+datadict['user']+'|'+self.member[datadict['user']]+'>'

@@ -5,6 +5,7 @@ class TRANSLATE:
 
     def __init__(self,slack,custom):
         self.slack = slack
+        self.colorPrint = custom['colorPrint']
         self.translate = custom['Translate'].translate
         self.payload = {
             "username": "翻譯 translator",
@@ -38,12 +39,12 @@ class TRANSLATE:
 
         if datadict['text'].startswith("translate "):
             text,opt = self.parse(datadict['text'])
-            print(text,opt)
+            self.colorPrint("text",text)
+            self.colorPrint("option",opt)
             try:
                 trans = self.format(self.translate(text,opt))
             except ValueError as err:
                 trans = err.__str__()
-            print(trans)
 
             self.slack.api_call("chat.postMessage",
                     text = trans,

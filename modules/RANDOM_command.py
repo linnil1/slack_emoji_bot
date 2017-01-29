@@ -170,6 +170,7 @@ class RANDOM:
         return []
     def __init__(self,slack,custom):
         self.slack = slack
+        self.colorPrint = custom['colorPrint']
         self.payload = {
             "username": "亂數 Randomer",
             "icon_emoji": ":_e4_ba_82:"
@@ -187,6 +188,7 @@ class RANDOM:
                     arr = Myrandom.lineParse(datadict['text'])
                 except:
                     arr = sys.exc_info()[1]
+                self.colorPrint("Array of answer",arr)
 
                 if type(arr) is list:
                     arr = ", ".join( ['`'+str(i)+'`' for i in arr] )

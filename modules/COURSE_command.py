@@ -1,10 +1,8 @@
-
 from lxml import html
 import requests
 import re
 import dateutil.parser
 import datetime
-from pprint import pprint
 
 #this is for NTUOSC
 class COURSE:
@@ -15,12 +13,14 @@ class COURSE:
                 {"name":"meet_table_index"}]
     def __init__(self,slack,custom):
         self.slack = slack
+        self.colorPrint = custom['colorPrint']
         self.isntuosc = custom['team_name'] == 'ntuosc'
-        self.url = custom['course_url']
+        self.url = custom['course_url'] 
         self.courseIndex = int(custom['course_table_index'])
         self.meetIndex = int(custom['meet_table_index'])
         self.coursedata = []
 
+    # On dropbox
     def courseGet(self):
         req = requests.get(self.url)
         tree = html.fromstring(req.text)
@@ -43,7 +43,7 @@ class COURSE:
             tabledata.append(dic)
 
         tabledata.sort(key=lambda a: a['datetime'] )
-        pprint(tabledata)
+        self.colorPrint("Course Table",tabledata)
         self.coursedata = tabledata
 
     def courseChoose(self):

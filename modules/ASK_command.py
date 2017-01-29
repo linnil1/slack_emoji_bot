@@ -12,6 +12,7 @@ class ASK:
         self.slack = slack
         self.imgur = custom['Imgur']
         self.appid = custom['wolfram_app']
+        self.colorPrint = custom['colorPrint']
 
     def apiCall(self,text,assum=""):
         rep = requests.get("http://api.wolframalpha.com/v2/query",
@@ -20,7 +21,7 @@ class ASK:
                 "input":text,
                 "format":"image,plaintext",
                 "assumption":assum})
-        print("call "+rep.url)
+        self.colorPrint("Send data",rep.url)
         return etree.fromstring(rep.text.encode("UTF8")) 
 
     def assumCall(self,text,num):

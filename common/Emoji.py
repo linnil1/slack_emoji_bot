@@ -4,7 +4,7 @@ import requests
 class SLACK_LOGIN_ERROR(Exception):
     pass
 
-def logIn(url,email,password):
+def logIn(url,email,password,colorPrint):
     session = requests.Session()
     session.headers['User-Agent'] = "Mozilla/5.0 (X11; Ubuntu; Linux x86_64; rv:49.0)"
     rep = session.get(url)
@@ -26,7 +26,7 @@ def logIn(url,email,password):
         raise SLACK_LOGIN_ERROR
 
     team = htree.xpath("//title")[0].text
-    print(team)
+    colorPrint("Team Name",team)
     return session.cookies
 
 def getalert(rep):
@@ -42,9 +42,10 @@ class Emoji:
             {"name": "slack_password","secret":True}]
 
     def __init__(self,privacy):
+        self.colorPrint = privacy['colorPrint']
         baseurl = "https://{}.slack.com".format(privacy['slack_name'])
         self._url  = baseurl + "/customize/emoji"
-        self._cookies = logIn(baseurl,privacy['slack_email'],privacy['slack_password'])
+        self._cookies = logIn(baseurl,privacy['slack_email'],privacy['slack_password'],self.colorPrint)
 
     def _session(self):
         session = requests.Session()

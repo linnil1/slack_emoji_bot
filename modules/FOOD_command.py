@@ -1,5 +1,4 @@
 from slackclient import SlackClient
-from pprint import pprint
 import json
 import jieba
 import re
@@ -36,6 +35,7 @@ class FOOD:
     def __init__(self,slack,custom):
         self.slack = slack
         self.rundata = custom['data']
+        self.colorPrint = custom['colorPrint']
 
         self.food_dir = "data/midnight.json"
         self.food_dic = "data/dict.txt.big"
@@ -59,12 +59,11 @@ class FOOD:
             jieba.del_word(word)
 
         if not self.channel_id:
-            print("no midnight channel! Restart when midnight channel can use")
+            self.colorPrint("No midnight channel","Restart when midnight channel can use",color="FAIL")
             self.nochannel = True
             return
 
         self.init()
-        print("init done")
 
     def init(self):
         # cut
@@ -83,13 +82,12 @@ class FOOD:
 
     def wordSearch(self,text):
         textarr = jieba.lcut(text)
-        print(textarr)
+        self.colorPrint("Jieba cut",textarr)
         for t in textarr:
             if t in self.jieba_dic :
                 return self.jieba_dic[t]
         raise ValueError("not found")
     def wordParse(self,img):
-        print(img)
         return {
             "title": img['title'],
             "title_link": img['permalink'],
@@ -98,7 +96,7 @@ class FOOD:
         }
 
     def imageAdd(self,img):
-        print("midnight add")
+        self.colorPrint("Add Foods",img)
         img['jieba'] = (jieba.lcut(img['title']))
         for jiba in img['jieba']:
             self.jieba_dic[jiba] = img

@@ -1,6 +1,5 @@
 import facebook 
 from datetime import datetime
-from pprint import pprint
 import os
 from threading import Timer
 
@@ -15,6 +14,7 @@ class FBTOSLACK:
                 {"name":"syncfb_channel","default":"random"}]
     def __init__(self,slack,custom):
         self.slack = slack
+        self.colorPrint = custom['colorPrint']
         self.club = custom['fb_clubid']
         self.interval = int(custom['syncfb_interval']) #unit: second
         self.hashtag = custom['sync_hashtag']
@@ -146,7 +146,7 @@ class FBTOSLACK:
             self.stop = 5
         except:
             self.stop = self.stop-1 
-            print("error")
+            self.colorPrint("Cannot connect to FB",color="FAIL")
             if self.stop < 0:
                 self.slack.api_call("chat.postMessage",**self.payload_user,text="Token Expired\nUse token=xxx to retoken")
             else:
@@ -155,7 +155,7 @@ class FBTOSLACK:
 
         feeds = feeds['data'] # ignore paging
         if feeds:
-            pprint(feeds)
+            self.colorPrint("FB data",feeds)
         return feeds
 
     def messagePost(self):

@@ -4,6 +4,9 @@ from base64 import b64decode, b64encode
 import json
 import os.path
 
+import ColorPrint
+colorPrint = ColorPrint.setPrint("PassWord")
+
 def privacyAsk(need):
     func = input
     if need.get("secret"):
@@ -33,12 +36,11 @@ def logIn(needprivacy):
     filepath = "data/privacy.json"
     file_exist = os.path.isfile(filepath)
     dict_privacy = {}
+    colorPrint("Config Data Exist",file_exist)
     if file_exist :
-        print("File exist")
         dict_privacy= json.loads(open(filepath).read())
         password = getpass("Enter Master password: ")
     else:
-        print("File no exist")
         password = getpass("Set Master password: ")
 
     # decode data
@@ -46,7 +48,6 @@ def logIn(needprivacy):
     if dict_privacy.get("hash"):
         hashdata  = b64decode(dict_privacy['hash'])
         dict_hash = json.loads(decrypt(password,hashdata).decode("utf8"))
-        #print(dict_hash)
 
     # get new data
     new_privacy = {'hash':dict_privacy['hash']} if dict_privacy.get("hash") else {}
@@ -68,5 +69,6 @@ def logIn(needprivacy):
     if new_privacy != dict_privacy:
         open(filepath,"w").write(json.dumps(new_privacy))
 
-    print("OK")
+    colorPrint("Password Correct")
+    #colorPrint("Secrect",{**new_privacy,**new_hash})
     return {**new_privacy,**new_hash}
