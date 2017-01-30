@@ -18,7 +18,7 @@ import copy
 
 #wantname = ["REGEXBOT","CustomResponse"]
 wantname = ["OLD","Emoji"]
-#wantname=["LATEX","Imgur"]
+#wantname=[]
 
 class Slack_RTM:
     def __init__(self):

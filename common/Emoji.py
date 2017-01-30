@@ -1,5 +1,7 @@
 from lxml import html
 import requests
+import pickle
+import os.path
 
 class SLACK_LOGIN_ERROR(Exception):
     pass
@@ -29,6 +31,14 @@ def logIn(url,email,password,colorPrint):
     colorPrint("Team Name",team)
     return session.cookies
 
+def loginCheck(url,cookies,colorPrint):
+    session = requests.Session()
+    session.cookies = cookies
+    rep = session.get(url)
+    htree = html.fromstring(rep.text)
+    team = htree.xpath("//title")[0].text
+    colorPrint("Team Name",team)
+
 def getalert(rep):
     htree = html.fromstring(rep.text)
     alert = htree.xpath("//p[contains(@class, 'alert')]")
@@ -45,7 +55,20 @@ class Emoji:
         self.colorPrint = privacy['colorPrint']
         baseurl = "https://{}.slack.com".format(privacy['slack_name'])
         self._url  = baseurl + "/customize/emoji"
-        self._cookies = logIn(baseurl,privacy['slack_email'],privacy['slack_password'],self.colorPrint)
+        self._cookiepath = "data/slackLogIn"
+
+        if os.path.isfile(self._cookiepath):
+            with open('data/slackLogIn', 'rb') as f:
+                self._cookies = pickle.load(f)
+            #check
+            loginCheck(baseurl,self._cookies,self.colorPrint)
+        else:
+            self._cookies = logIn(
+                baseurl,
+                privacy['slack_email'], privacy['slack_password'],
+                self.colorPrint)
+            with open('data/slackLogIn', 'wb') as f:
+                pickle.dump(self._cookies, f)
 
     def _session(self):
         session = requests.Session()

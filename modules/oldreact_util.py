@@ -1,95 +1,120 @@
+from concurrent.futures import ThreadPoolExecutor,wait
 import re
+
 class oldreact:
-    def __init__(self,old,slack):
-        self.OLD = old
+    def __init__(self,slack,colorPrint):
         self.slack = slack
-        self.futurereact = {}
-        # {channel:[{count:,arr:[,]},{}]
+        self.colorPrint = colorPrint
+        self.futurereact = []
+        # [ {payload,target,text} ]
 
-    def getFileID(self,payload,ts,count): #count <=0
-        count = -count+1 # because inclusive
-        target = {}
-        for i in range(4):
-            target =self.slack.api_call("channels.history",
-                    channel=payload['channel'],
-                    count=count,
-                    latest=ts,
-                    inclusive=1)
-            if float(target['messages'][0]['ts']) >= float(ts):
-                break;
-            print("Not newest")
-            time.sleep(0.25)
-            
-        if float(target['messages'][0]['ts']) < float(ts):
-            print("Not newest")
-            raise ValueError("Not found newest")
-
-        target = target['messages'][count-1]
-
-        if 'comment' in target :
-            payload['file_comment'] = target['comment']['id']         
-        elif 'file' in target :
-            payload['file'] = target['file']['id']         
+    def historyIDGet(self,want,datadict):
+        if datadict.get("thread_ts"):
+            resp = self.slack.api_call(
+                "channels.history",
+                channel  = datadict['channel'],
+                count    = 1,
+                latest   = datadict['thread_ts'],
+                inclusive= 1
+            )
+            rep = resp['messages'][0]['replies']
+            self.colorPrint("Thread History",rep)
+            if len(rep) > want:
+                return {"channel":datadict['channel'],
+                        "timestamp":rep[len(rep)-1-want]['ts'] }
+            else: # error
+                raise ValueError("Floor not found")
         else:
-            payload['timestamp'] = target['ts']
+            rep = []
+            ts,include = datadict['ts'],1
+            while len(rep) <= want:
+                resp = self.slack.api_call(
+                    "channels.history",
+                    channel  = datadict['channel'],
+                    count    = 32,
+                    latest   = ts,
+                    inclusive= include)['messages']
 
+                #filter thread
+                for r in resp:
+                    if not r.get("thread_ts") or r['thread_ts'] == r['ts']:
+                        rep.append(r)
 
-    def getFloor(self,data):
+                #continue get history
+                ts,include = resp[-1]['ts'],0
+            self.colorPrint("History",[ r['text'] for r in rep if r['text'] ])
+            target = rep[want]
+            if 'subtype' in target:
+                if target['subtype'] == "file_comment":
+                    return {"file_comment":target['comment']['id']}
+                if target['subtype'] == "file_share":
+                    return {"file":target['file']['id']}
+            return {"channel":datadict['channel'],"timestamp":target['ts'] }
+
+    def floorGet(self,data):
         """ It should be separated by space and the range is [-F,F] in hex """
-        strdig = re.search(r"^-?[0-9a-fA-F]\s",data)
-        
+        strdig = re.search(r"^-?[0-9a-fA-F]+\s",data)
         try:
             dig = int(strdig.group(),16)
-        except(AttributeError,TypeError,ValueError): #nonetype or strange dig
-            raise ValueError
+        except ValueError : #nonetype or strange dig
+            raise ValueError("Floor number Error. It should be [-F~F]")
 
-        print("Floor = " + str(dig))
+        self.colorPrint("Floor",dig)
+        if dig < -0xF or dig > 0xF:
+            raise ValueError(str(dig)+" is too big. It should be [-F~F]")
         return dig
 
     def futurereactCount(self,datadict):
-        if datadict['type'] == 'message' :
-            if 'subtype' not in datadict or datadict['subtype'] not in ["me_message","message_changed","message_deleted"]:
-                ch = datadict['channel']
-                if ch not in self.futurereact:
-                    return 
-                if ch in self.futurereact:
-                    mails = self.futurereact[ch]
-                    for i in range(len(mails)):
-                        mails[i]['count'] -= 1
-                        if mails[i]['count'] == 0 :
-                            print("future Mail")
-                            futuredict = dict(datadict)
-                            futuredict['text'] = mails[i]['text']
-                            futuredict['future'] = True
-                            self.OLD.main(futuredict)
-                    self.futurereact[ch] = [ mail for mail in mails if mail['count'] != 0 ] 
-            elif datadict['subtype']=="message_deleted":
-                #if deleted will cause some count error
-                #but i don't want to deal it
-                return 
+        if datadict['type'] != 'message' :
+            return 
+        if not self.futurereact:
+            return
+        #if not in ["me_message","message_changed","message_deleted"]:
+        #if deleted will cause some count error
+        #but i don't want to deal it
+        with ThreadPoolExecutor(max_workers=16) as executor:
+            pool = [ executor.submit(self.historyIDGet,f['floor'],datadict)
+                for f in self.futurereact]
+            newreact = []
+            for i,f in enumerate(self.futurereact):
+                if  pool[i].result() == f['target']:
+                    self.reactSend( self.historyIDGet(0,datadict), f['text'] )
+                else:
+                    newreact.append(f)
+            self.futurereact = newreact
+        self.colorPrint("future reaction",self.futurereact)
 
-    def futurereactAdd(self,payload,text,floors):
+    def futurereactAdd(self,payload,text,floor):
         ch = payload['channel'] 
-        if ch not in self.futurereact:
-            self.futurereact[ch] = []
-        self.futurereact[ch].append({"count":floors,"text":text})
-        payload['name'] = "_e8_a1_8c" # ok in chinese
-        print(self.slack.api_call("reactions.add",**payload))
+        target = self.historyIDGet(0,payload)# it self
+        self.futurereact.append({
+            "text"    : text,
+            "target"  : target,
+            "floor"   : floor
+        })
+        self.colorPrint("future reaction",self.futurereact)
+        self.reactSend(target,":_e8_a1_8c:") # ok in Chinese
 
+    def reactSend(self,payload,string):
+        with ThreadPoolExecutor(max_workers=16) as executor:
+            pool = [ executor.submit(
+                self.slack.api_call, "reactions.add",
+                **payload, name=emoji) 
+                    for emoji in re.findall(r":(\w+):",string)]
+            wait(pool)
 
-    def main(self,payload,emoji_str,ts,method="oldreact"):
-        floors = -1
+    def main(self,datadict,emoji_str):
+        floor = -1
         futuretext = emoji_str
-        try: #if has floor option
-            floors = self.getFloor(emoji_str)
-            futuretext = re.search(r"( .*)",emoji_str,re.DOTALL).group().strip()
-            if floors > 0:
-                self.getFileID(payload,ts,0)
-                self.futurereactAdd(payload,method+" 0 "+futuretext,floors)
-                return (None,None)
-        except:
-            pass
-
-        self.getFileID(payload,ts,floors)
-
-        return payload,futuretext
+        try: #if floor information exist
+            if re.search(r"^-?[0-9a-fA-F]+\s",emoji_str):
+                floor = self.floorGet(emoji_str)
+                futuretext = re.search(r"( .*)",emoji_str,re.DOTALL).group().strip()
+        except ValueError as err:
+            self.colorPrint("Floor ERR",str(err),color="ERR")
+            self.reactSend(self.historyIDGet(0,datadict),":_e4_b8_8d:") # No in Chinese
+            return
+        if floor > 0:
+            self.futurereactAdd(datadict,futuretext,floor)
+        else:
+            self.reactSend(self.historyIDGet(-floor,datadict),emoji_str)

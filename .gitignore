@@ -7,3 +7,4 @@ makefile
 test*
 word_data
 node_modules/
+slackLogIn

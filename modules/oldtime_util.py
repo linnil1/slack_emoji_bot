@@ -1,21 +1,46 @@
-from bs4 import BeautifulSoup as BS
-import urllib.request
+import requests
+from lxml import html
 import time
 import re
+colorPrint = {}
+
+def dateList(url):
+    htree = html.fromstring(requests.get(url).text)
+    table = htree.xpath("//table")[0]
+    table_list = []
+    for week,d in enumerate(table.xpath("*/td")[7:]):
+        if not d.xpath("span"):
+            continue
+        table_list.append({
+            "name" : d.xpath("span//text()")[0],
+            "date" : d.xpath("b//text()")[0],
+            "color": len(d.xpath("span[@style]")) > 0 ,
+            "now"  : d.attrib.get("bgcolor"),
+            "week" : week%7 #sunday = 0
+        })
+
+    oldyear = re.findall(r'\w+',htree.xpath("//font[@size='4']")[0].text)
+    colorPrint("Calendar",(oldyear,table_list))
+    
+    return oldyear,table_list
 
 def dateTostr(year,month,date):
     if year <= 1900 or year >= 2100:
         raise ValueError("year not good")
     url = "http://www.nongli.info/index.php?c=solar&year="+str(year)+"&month="+str(month)+"&date="+str(date)
-    a = urllib.request.urlopen(url).read().decode("utf-8")
-    bs = BS(a,"lxml")
-    oldmonthday = bs.find("td",attrs={"bgcolor":'#c9f5f7'}).span.text
-    oldyear = re.findall(r"\w+",bs.find("font",attrs={"size":4}).text)
+    year,month_list = dateList(url)
 
-    if len(oldyear) == 4 and "臘" not in oldmonthday:#not good condition
-        oldyear = oldyear[2:4]
-    
-    return oldyear[0] + " " + oldyear[1] + " "  + oldmonthday
+    #search if the day is after new year
+    if len(year) == 4 :
+        for i in month_list:
+            if i['name'] == '春節':
+                if int(i['date']) <= date:
+                    year = year[2:]
+                break
+    #search today
+    for i in month_list:
+        if i['now']:
+            return " ".join([year[0],year[1],i['name']])
 
 def minuteTostr(minute):
     if minute >=60 : 
@@ -38,39 +63,35 @@ def timeParse(timestr):
     """
     support format type
     2016/1/2 3:4
-    2016/1/2 3:
+    2016/1/2 3
     2016/1/2
     2016
     3:4
     3:
     :4
     """
-    parseformat = ["%Y/%m/%d %H:%M","%Y/%m/%d %H:","%Y/%m/%d","%Y","%H:%M","%H:",":%M"]
+    parseformat = ["%Y/%m/%d %H:%M","%Y/%m/%d %H","%Y/%m/%d","%Y","%H:%M","%H:",":%M"]
 
-    for i in range(len(parseformat)):
+    for i in parseformat:
         try:
-            return time.strptime(timestr,parseformat[i]),i
+            return time.strptime(timestr,i),i
         except :
             pass
-
     raise ValueError("not found correct format")
 
 def timeTostr(timestr):
     thetime,timetype = timeParse(timestr.strip())
-    if   timetype == 6:
-        return minuteTostr(thetime.tm_min)
-    elif timetype == 5:
-        return hourTostr(thetime.tm_hour)
-    elif timetype == 4:
-        return hourTostr(thetime.tm_hour) + " " + minuteTostr(thetime.tm_min)
-    elif timetype == 3:
+    if timetype == '%Y':
         return dateTostr(thetime.tm_year,7,26).split(' ')[0]  # only the year (7/26=Today)
-    elif timetype == 2:
-        return dateTostr(thetime.tm_year,thetime.tm_mon,thetime.tm_mday)
-    elif timetype == 1:
-        return dateTostr(thetime.tm_year,thetime.tm_mon,thetime.tm_mday) +(
-            "  " + hourTostr(thetime.tm_hour))
-    elif timetype == 0:
-        return dateTostr(thetime.tm_year,thetime.tm_mon,thetime.tm_mday) +(
-            "  " + hourTostr(thetime.tm_hour) + " " + minuteTostr(thetime.tm_min) )
+    text = ""
+    if '%Y' in timetype:
+        text += dateTostr(thetime.tm_year,thetime.tm_mon,thetime.tm_mday) + ' '
+    if '%H' in timetype:
+        text += hourTostr(thetime.tm_hour) + ' '
+    if '%M' in timetype:
+        text += minuteTostr(thetime.tm_hour) + ' '
+    return text
 
+def setPrint(cp):
+    global colorPrint
+    colorPrint = cp

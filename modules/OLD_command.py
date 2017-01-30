@@ -1,16 +1,16 @@
-from oldreact_util import oldreact
-import oldtime_util 
+from concurrent.futures import ThreadPoolExecutor
 import urllib.request
 import urllib.parse
+import hashlib
 import os.path
 import string
 import re
-import json
 import time
-from multiprocessing import Process,Queue
-
-import oldgif_util
 import math
+
+from oldreact_util import oldreact
+import oldtime_util 
+import oldgif_util
 
 class OLD:
     def require():
@@ -22,9 +22,9 @@ class OLD:
         self.slack  = slack
         self.colorPrint = custom['colorPrint']
         self.emoji = custom['Emoji']
-        self.oldreact = oldreact(self,slack)
+        self.oldreact = oldreact(slack,self.colorPrint)
 
-    def filenameTo(self,word):
+    def wordTofilename(self,word):
         return urllib.parse.quote(word).lower().replace("%","_")
 
     def imageDownload(self,word):
@@ -32,61 +32,44 @@ class OLD:
         webword = urllib.parse.quote(word).lower()
         geturl = "http://xiaoxue.iis.sinica.edu.tw" + "/ImageText2/ShowImage.ashx?text="+webword+"&font=%e5%8c%97%e5%b8%ab%e5%a4%a7%e8%aa%aa%e6%96%87%e5%b0%8f%e7%af%86&size=36&style=regular&color=%23000000"
 
-        urllib.request.urlretrieve(geturl,self.dir+self.filenameTo(word))
+        urllib.request.urlretrieve(geturl,self.dir+self.wordTofilename(word))
 
-    def messageWord(self,word):
-        filename= self.filenameTo(word)
-        wordlen = len(open(self.dir+filename,"rb").read())
-        self.colorPrint("PNG Size",word +" = "+str(wordlen))
-        if wordlen<140:
+    def wordTomessage(self,word):
+        filename= self.wordTofilename(word)
+        pnglen = len(open(self.dir+filename,"rb").read())
+        self.colorPrint("PNG Size",word +" = "+str(pnglen))
+        if pnglen<140:
             self.colorPrint("Word not found",word,color="OKBLUE")
             return word
         else:
             return  ":"+filename+":"
 
-    def imageProcess(self,word,queue):
-        if word in string.printable:
-            queue.put((word,word))
-            return #for secure problem like ../
-        filename = self.filenameTo(word)
+    def imageProcess(self,word):
+        """
+        check exist.  Download when not exist
+        check image is not blank and change word to emoji syntax.
+        if we download good image , upload as emoji
+        """
+        if word in string.printable: # this will not include our target : Chinese 
+            return word
+        filename = self.wordTofilename(word)
         file_noexist = not os.path.isfile(self.dir+filename)
-        self.colorPrint("Word not exist",word+" = "+str(file_noexist))
         if file_noexist:
             self.imageDownload(word)
-        message = self.messageWord(word)
+        message = self.wordTomessage(word)
         if file_noexist and len(message)!=1 :
             self.colorPrint("Emoji upload",filename +" >> "+ self.emoji.upload(self.dir,filename))
-        queue.put((word,message))
+        return message
 
     def imageUpDown(self,qstr):
-        #pre str
-        uniquestr = []
-        for word in qstr:
-            if word not in uniquestr:
-                uniquestr.append(word)
-        
-        #mutiprocess
-        queue = Queue()
-        process = []
-        for word in uniquestr:
-            process.append(Process(target=self.imageProcess,args=(word,queue)))
-        for i in process:
-            i.start()
-        for i in process:
-            i.join()
-
-        #dictionary map
-        worddict= {}
-        for i in range(queue.qsize()):
-            key,val = queue.get()
-            worddict[key] = val
-        emoji_str = ""
-        for word in qstr:
-            emoji_str += worddict[word]
-        return emoji_str
+        uniquestr = list(set(qstr))
+        with ThreadPoolExecutor(max_workers=16) as executor:
+            unimap = dict(zip(uniquestr,executor.map(self.imageProcess,uniquestr)))
+            return ''.join( [ unimap[i] for i in qstr ] )
+    # ---- simple old commmand END----
 
     def gifTime(self,text): #default 0.5s
-        t = re.findall(r"^-t\s+(.*?)\s+",text)
+        t = re.findall(r"^-t\s*(.*?)\s+",text)
         if len(t)>1:
             raise ValueError("Arguments Error")
         elif len(t) == 0:
@@ -109,7 +92,8 @@ class OLD:
         if len(onlyemoji) > 100:
             raise ValueError("too many words")
         giftime = math.floor(giftime*1000)
-        hashname = "oldgif_"+str(giftime)+"_"+str(abs(hash(str(onlyemoji))))
+        hashname = "oldgif_"+hashlib.md5(
+            (str(giftime)+str(onlyemoji)).encode('utf-8')).hexdigest()
 
         if not os.path.isfile(self.dir+hashname):
             oldgif_util.gifGet(onlyemoji,giftime,self.dir,hashname)
@@ -117,13 +101,14 @@ class OLD:
 
         self.colorPrint("GIF words",'('+len(onlyemoji)+')'+onlyemoji)
         return ':'+hashname+':'
+    # ---- gif funtion in this file End ---- 
 
     def main(self,datadict):
-        if 'future' not in datadict:
-            self.oldreact.futurereactCount(datadict)
-            if not (datadict['type'] == 'message' and (
-            'subtype' not in datadict or datadict['subtype']=="bot_message")):
-                return 
+        self.oldreact.futurereactCount(datadict)
+        if datadict['type'] != 'message' :
+            return 
+        if 'subtype' in datadict and datadict['subtype']!="bot_message":
+            return 
 
         payload = {
             "channel": datadict['channel'],
@@ -138,7 +123,7 @@ class OLD:
                 self.slack.api_call("chat.postMessage",**payload)
                 
             data = re.search(r"(?<=old ).*",text,re.DOTALL).group().strip()
-            payload["text"    ] = self.imageUpDown(data)
+            payload["text"] = self.imageUpDown(data)
             self.slack.api_call("chat.postMessage",**payload)
 
         elif text.startswith("oldask "):
@@ -152,22 +137,7 @@ class OLD:
         elif text.startswith("oldreact "):
             data = re.search(r"(?<=oldreact ).*",text,re.DOTALL).group().strip()
             emoji_str = self.imageUpDown(data)
-
-            payload,futuretext = self.oldreact.main(payload,emoji_str,datadict['ts'])
-            if payload == None:
-                return
-            
-            onlyemoji = re.findall(r":(\w+):",futuretext)
-            for emojiname in onlyemoji:
-                payload['name'] = emojiname 
-                self.slack.api_call("reactions.add",**payload)
-
-            #for recursive use
-            if futuretext.startswith("old "):
-                payload['username'] += "_recursive"
-                payload['text'] = re.search(r"(?<=old ).*",futuretext,re.DOTALL).group().strip()
-                self.slack.api_call("chat.postMessage",**payload)
-
+            self.oldreact.main(datadict,emoji_str)
 
         elif text.startswith("oldset "):
             data = re.search(r"(?<=oldset).*",text,re.DOTALL).group().strip()
@@ -193,23 +163,17 @@ class OLD:
         
         elif text.startswith("oldhelp"):
             text ="""
-`old [text]                ` *transfer text to 小篆emoji.*
-`oldask [6characters]      ` *To ask what is the chinese word of the url-encoded string*
-`oldreact (floor=-1) [text]` *give reactions of 小篆emoji to specific floor message*
-`oldset [aWord] [newName]  ` *set alias for 小篆emoji*
-`oldhelp                   ` *get help for the usage of this module*
-`oldtime (time)            ` *show date and time by 小篆emoji*
-`oldgif (-t second=0.5) [text]` *combine 小篆emojis into gif*
-`oldgifreact (floor=-1) [text]` *give reactions of 小篆emoji gif to specific floor message*
+`old [text]                ` transfer text to 小篆emoji.
+`oldask [6characters]      ` To ask what is the chinese word of the url-encoded string
+`oldreact (-1) [text]      ` give reactions of 小篆emoji to specific floor(-1) message
+`oldset [word] [newName]   ` set alias for 小篆emoji
+`oldhelp                   ` get help for the usage of this module
+`oldtime (time)            ` show date and time by 小篆emoji
+`oldgif (-t 0.5) [text]    ` combine 小篆emojis into 0.5 second per word GIF
+`oldgifreact (-1) [text]   ` give reactions of 小篆emoji gif to specific floor message
 """.strip()
             
-            self.slack.api_call("chat.postMessage",**payload,text = text,
-                    attachments=[{
-                        "author_name":"linnil1",
-                        "title":"OLD module document",
-                        "title_link":"https://github.com/linnil1/slack_emoji_bot/blob/master/OLDhelp.md",
-                        "text":"You can see more details in the document\nor see <https://github.com/linnil1/slack_emoji_bot|source>"
-                        }])
+            self.slack.api_call("chat.postMessage",**payload,text = text)
 
         elif text.startswith("oldtime"):
             nowtime = ""
@@ -219,6 +183,7 @@ class OLD:
                 nowtime = re.search(r"(?<=oldtime ).*",text,re.DOTALL).group().strip()
 
             try:
+                oldtime_util.setPrint(self.colorPrint)
                 nowstr = oldtime_util.timeTostr(nowtime)
             except ValueError:
                 return 
