@@ -7,10 +7,10 @@ import string
 import re
 import time
 import math
+from PIL import Image
 
 from oldreact_util import oldreact
 import oldtime_util 
-import oldgif_util
 
 class OLD:
     def require():
@@ -83,24 +83,50 @@ class OLD:
             raise ValueError("time number too big")
         return giftime
 
-    def gifMake(self,data):
+    def gifWord(self,data):
         text = self.imageUpDown(data)
-        giftime = self.gifTime(text)
         onlyemoji = re.findall(r":(.*?):",text)
         if len(onlyemoji) < 2:
             raise ValueError("Need at least two words")
         if len(onlyemoji) > 100:
             raise ValueError("too many words")
-        giftime = math.floor(giftime*1000)
+        return onlyemoji
+
+    def gifimageTrans(self,im): # I don't know how to descripe
+        whiteim = Image.new("RGB", im.size, (255, 255, 255))
+        whiteim.paste(im, mask=im.split()[3])
+        alphaim = whiteim.convert("RGBA")
+        datas = alphaim.getdata()
+        new_data = []
+        for item in datas:
+            if item[0] == 255 and item[1] == 255 and item[2] == 255:
+                new_data.append((255, 255, 255, 0))
+            else:
+                new_data.append((item[0],item[1],item[2],255))
+        alphaim.putdata(new_data)
+        return  alphaim
+
+    def gifMake(self,text):
+        giftime = self.gifTime(text)*1000
+        gifword = self.gifWord(text)
         hashname = "oldgif_"+hashlib.md5(
-            (str(giftime)+str(onlyemoji)).encode('utf-8')).hexdigest()
+            (str(giftime)+str(gifword)).encode('utf-8')).hexdigest()
+        self.colorPrint("GIF data","time= {}\ngifword= {}".format(giftime,gifword))
+        if os.path.isfile(self.dir+hashname):
+            return ':'+hashname+':'
 
-        if not os.path.isfile(self.dir+hashname):
-            oldgif_util.gifGet(onlyemoji,giftime,self.dir,hashname)
-            self.colorPrint("Emoji upload",filename +" >> "+ self.emoji.upload(self.dir,hashname))
+        ims = [ self.gifimageTrans(Image.open(self.dir+word)) for word in gifword ]
+        ims[0].save(self.dir+hashname,
+                append_images=ims[1:],
+                duration=giftime,
+                disposal=2,
+                loop=0,
+                format="GIF", save_all=True, transparency=0)
 
-        self.colorPrint("GIF words",'('+len(onlyemoji)+')'+onlyemoji)
+        self.colorPrint("Emoji upload",hashname +" >> "+ 
+            self.emoji.upload(self.dir,hashname))
         return ':'+hashname+':'
+
     # ---- gif funtion in this file End ---- 
 
     def main(self,datadict):
@@ -166,7 +192,7 @@ class OLD:
 `old [text]                ` transfer text to 小篆emoji.
 `oldask [6characters]      ` To ask what is the chinese word of the url-encoded string
 `oldreact (-1) [text]      ` give reactions of 小篆emoji to specific floor(-1) message
-`oldset [word] [newName]   ` set alias for 小篆emoji
+`oldset [字] [newName]     ` set alias for 小篆emoji
 `oldhelp                   ` get help for the usage of this module
 `oldtime (time)            ` show date and time by 小篆emoji
 `oldgif (-t 0.5) [text]    ` combine 小篆emojis into 0.5 second per word GIF
@@ -202,13 +228,5 @@ class OLD:
         
         elif text.startswith("oldgifreact "):
             data = re.search(r"(?<=oldgifreact ).*",text,re.DOTALL).group().strip()
-            emoji_str = self.imageUpDown(data)
-
-            payload,futuretext = self.oldreact.main(payload,emoji_str,datadict['ts'],"oldgifreact")
-            if payload == None:
-                return
-
-            onlyemoji = re.findall(r":(.*?):",self.gifMake(futuretext))
-
-            payload['name'] = onlyemoji[0]
-            self.slack.api_call("reactions.add",**payload)
+            emoji_str = self.gifMake(data)
+            self.oldreact.main(datadict,emoji_str)

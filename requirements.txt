@@ -9,3 +9,4 @@ imgurpython
 cowpy
 facebook-sdk
 slpy
+PILLOW
