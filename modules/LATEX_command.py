@@ -12,7 +12,7 @@ class LATEX:
         self.colorPrint = custom['colorPrint']
 
     def main(self,datadict):
-        if not (datadict['type'] == 'message' and datadict['subtype']=='file_share' and
+        if not (datadict['type'] == 'message' and 'subtype' in datadict and datadict['subtype']=='file_share' and
             datadict['file']['filetype'] == 'latex'):
             return 
         oritext = datadict['file']['preview']

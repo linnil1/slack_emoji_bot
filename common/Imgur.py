@@ -1,5 +1,5 @@
 from imgurpython import ImgurClient
-from multiprocessing import Pool
+from concurrent.futures import ThreadPoolExecutor
 
 class Imgur:
     def require():
@@ -18,8 +18,8 @@ class Imgur:
         if not urls:
             return urls
 
-        pool = Pool(len(urls))
-        return pool.map(self.imageUpload,urls)
+        with ThreadPoolExecutor(max_workers=16) as executor:
+            return list(executor.map(self.imageUpload,urls))
 
     def imageUpload(self,url):
         try:

@@ -24,11 +24,6 @@ class FBTOSLACK:
 
         # find broadcast channel
         self.channelname = custom['syncfb_channel']
-        self.payload = {
-            'channel': self.channelFind(),
-            'username': "FB syncer",
-            'icon_emoji': ":_e5_90_8c:"
-        }
         
         # find token user 
         self.username = custom['slack_username']
@@ -47,8 +42,8 @@ class FBTOSLACK:
 
     def init(self,token):
         self.graph = facebook.GraphAPI(access_token=token, version="2.7")
-        self.timerSet(self.interval)
         self.stop = 5 
+        self.messagePost()
 
     def timerSet(self,interval):
         timer = Timer(interval,self.messagePost)
@@ -62,16 +57,14 @@ class FBTOSLACK:
         raise ValueError("wrong channel name")
 
     def userFind(self):
-        userid = ""
         rep = self.slack.api_call("users.list")
         for c in rep['members']:
             if c['name'] == self.username:
-                userid = c['id']
-                break
-        rep = self.slack.api_call("im.open",user=userid)
-        return rep['channel']['id']
+                rep = self.slack.api_call("im.open",user=c['id'])
+                return rep['channel']['id']
+        raise ValueError("User for asking token not found")
 
-    def attachFind(self,datarr,dep=0):
+    def attachFind(self,datarr):
         attachs = []
         for data in datarr:
             attach = {}
@@ -79,22 +72,29 @@ class FBTOSLACK:
                 attach['text'] = data['description'] + "\n"
             else:
                 attach['text'] = ""
+
+            linkname = "Link"
             if data.get('media') and data['media'].get('image'):
                 attach['image_url'] = data['media']['image']['src']
                 if data['type'] == "video_inline":
-                    attach['text'] += "<"+data['url']+"|Click link to see videos>"
+                    linkname = "Click link to see videos"
                 else:
-                    attach['text'] += "Image"
-            attach['dep'] = dep
+                    linkname = "Image"
+            if data.get('url') and ('image_url' in attach or 'description' in data):
+                # It cannot be footer because the link may be big
+                attach['text'] += "<{}|{}>".format(data['url'], linkname)
 
             attachs.append(attach)
 
             #look like recursive
             if data.get('subattachments'):
-                attachs.extend(self.attachFind(data['subattachments']['data'],dep+1))
+                attachs.extend(self.attachFind(data['subattachments']['data']))
         return attachs
 
     def feedToSlack(self,feed):
+        if feed['id'] in self.rundata.get("fbid"):
+            return {} # empty will not output
+
         #hashtag
         if feed.get('message'): 
             # sync when hashtag not found
@@ -106,41 +106,36 @@ class FBTOSLACK:
 
         # main text
         main = {}
-        main['author_name'] = feed['from']['name']
-        main['author_link'] = "https://www.facebook.com/"+feed['from']['id']
-
+        main['username'] = feed['from']['name']
+        main['icon_url'] = self.graph.get_object(feed['from']['id']+"/picture")['url']
         main['text']=""
         if feed.get('story'):
             main['text'] += '_'+feed.get('story')+"_\n"
-            main['mrkdwn_in'] = ["text"]
         if feed.get('message'):
             main['text'] += feed.get('message') + "\n"
-        if feed.get('description'):
-            main['text'] += feed['description'] 
 
         # attachments
         attachs = []
         if feed.get('attachments'):
             attachs = self.attachFind(feed['attachments']['data'])
-            attachs = list(filter(None,   attachs))
-            for attach in attachs:
-                if attach['dep'] > 0:
-                    attach['color']="#0c0c0c"
-                del attach['dep']
-            
-        attachs = [main]+attachs
-        attachs[-1]['footer'] = feed['created_time'] + "'\n<"+feed['permalink_url']+"|FB_link>"
+            attachs = list(filter(None,attachs))
 
-        if feed['id'] in self.rundata.get("fbid"):
-            return {} # empty will not output
-        else:
-            #record fbid for not deplicated post same data
-            self.rundata.append("fbid",feed['id'])
-            return {'attachments':attachs}
+        attachs.append({'footer':"{}\n<{}|FB_link>".format(
+                                 feed['created_time'],feed['permalink_url']),
+                        'text'  :"_Created By FB syncer_",
+                        'mrkdwn_in':["text"] })
+
+        #record fbid for not deplicated post same data
+        self.rundata.append("fbid",feed['id'])
+        return {**main,'attachments':attachs}
 
     def feedsGet(self):
         try:
-            feeds = self.graph.get_object(id=self.club+"/feed", fields="message,attachments,permalink_url,from,story,description,type,created_time",since=self.rundata.get("timelog")-self.diff)
+            feeds = self.graph.get_object(
+                id    =self.club + "/feed",
+                fields="message,attachments,permalink_url,from,story"
+                       ",description,type,created_time",
+                since =self.rundata.get("timelog")-self.diff)
             self.rundata.set("timelog",int(datetime.now().strftime("%s")))
             self.timerSet(self.interval)
             self.stop = 5
@@ -163,9 +158,9 @@ class FBTOSLACK:
         if not feeds:
             return 
 
-        messages = [ self.feedToSlack(feed) for feed in reversed(feeds)]
+        messages = [ self.feedToSlack(feed) for feed in reversed(feeds) ]
         for message in messages:
-            self.slack.api_call("chat.postMessage",**self.payload,**message)
+            self.slack.api_call("chat.postMessage",channel=self.channelname,**message)
 
     def main(self,datadict):
         # get token

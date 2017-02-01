@@ -17,11 +17,11 @@ class NTU118:
 
     def listGet(self):
         listdata = self.req.post("https://118restaurant.ntu.edu.tw/restaurant/get_list",headers={'Referer': 'https://118restaurant.ntu.edu.tw/home'}).json()['content']
-        self.colorPrint("original Restaurant",listdata)
         for i in listdata: # there are some items without type QQ
             if not i['food_type']:
                 i['food_type'] = "其他"
             i['name'].strip() # name has not stripped
+        self.colorPrint("original Restaurant",listdata[-5:])
         return listdata
     
     def mainParse(self,store):
@@ -38,6 +38,7 @@ class NTU118:
     def attachParse(self,id):
         id = str(id)
         att = self.req.post("https://118restaurant.ntu.edu.tw/restaurant/get_info",data={'data':'{"rest_id":'+id+'}'},headers={'Referer': 'https://118restaurant.ntu.edu.tw/detail/'+id}).json()['content']
+        self.colorPrint("original Restaurant",att)
         arr = []
 
         #dishes

@@ -303,7 +303,6 @@ vote add "Tainan"
         if not self.start:
             showcount = showpeople = False
 
-
         # title
         text = status+"  Title : "+self.title + "\n"
         #if self.onlyone:

@@ -105,5 +105,5 @@ class COWSAY:
                 "icon_emoji": ":_e7_89_9b:",
                 "channel": datadict['channel'],
                 "thread_ts":datadict.get("thread_ts") or '',
-                "text":'```'+cowsay_main(self.parser,text,colorPrint)+'```'}
+                "text":'```'+cowsay_main(self.parser,text,self.colorPrint)+'```'}
             self.slack.api_call("chat.postMessage",**payload)
