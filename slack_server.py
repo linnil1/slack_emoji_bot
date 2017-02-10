@@ -6,15 +6,24 @@ import copy
 import sys
 import time
 import signal
+import os
 
 class Slack_RTM:
     def __init__(self):
-        self.modules, self.slack = InitModule.ModuleInit() 
-        self.colorPrint = ColorPrint.setPrint("Root")
-        self.slack = SlackClient(self.slack) #dirty methods
         signal.signal(signal.SIGTERM, self.graceExit)
         signal.signal(signal.SIGHUP,  self.graceExit)
-        self.ignoretype = ['user_typing','reconnect_url','pref_change','presence_change','emoji_changed','desktop_notification']
+        self.colorPrint = ColorPrint.setPrint("Root")
+
+        self.modules, base = InitModule.modulesInit() 
+        self.slack = SlackClient(base.get("TOKEN")) #dirty methods
+        self.postchannel = base.get("postchannel") #dirty methods
+        self.ignoretype = [
+            'user_typing',
+            'reconnect_url',
+            'pref_change',
+            'presence_change',
+            'emoji_changed',
+            'desktop_notification']
 
     def startRTM(self):
         if self.slack.rtm_connect():
@@ -34,17 +43,20 @@ class Slack_RTM:
         while True:
             try:
                 self.startRTM();
-            except KeyboardInterrupt:
+            except (KeyboardInterrupt, SystemExit):
                 break
             except:
                 self.colorPrint("ERR",sys.exc_info(),color="ERR")
                 time.sleep(1)
+        self.colorPrint("END")
+        # I don't know why it cannot exit
+        os.kill(os.getpid(), signal.SIGKILL)
 
     def commandSelect(self,data):
         for mod in self.modules:
             try:
                 mod.main(copy.deepcopy(data))
-            except KeyboardInterrupt:
+            except (KeyboardInterrupt, SystemExit):
                 raise
             except:
                 self.colorPrint("ERR at ",mod,color="ERR")
@@ -52,12 +64,13 @@ class Slack_RTM:
                 time.sleep(1)
 
     def graceExit(self, signum, frame):
-        rep = self.slack.api_call("channels.list")
-        for c in rep['channels']:
-            if c['name'].lower() == self.slack.reportchannel:
-                self.slack.api_call("chat.postMessage",channel=c['id'],text="Killed at "+time.strftime("%c"))
-                self.colorPrint("Killed at ",time.strftime("%c"),color="ERR")
-                sys.exit()
+        string = "Killed at {} with signal {}".format(time.strftime("%c"),signum)
+        self.colorPrint("Kill",string,color="ERR")
+        self.slack.api_call("chat.postMessage",
+                channel='#'+self.postchannel,
+                text=string)
+        sys.exit()
 
-slack_rtm=  Slack_RTM()
-slack_rtm.start()
+if __name__ == "__main__":
+    slack_rtm = Slack_RTM()
+    slack_rtm.start()

@@ -1,7 +1,7 @@
 
 class TRANSLATE:
     def require():
-        return [{"name":"Translate","module":"True"}]
+        return [{"name":"Translate","module":True}]
 
     def __init__(self,slack,custom):
         self.slack = slack

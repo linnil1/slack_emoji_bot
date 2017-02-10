@@ -17,19 +17,27 @@ import password_crypt
 import copy
 
 #wantname = ["REGEXBOT","CustomResponse"]
-wantname = ["FBTOSLACK"]
+wantname = ["ANON","Imgur"]
 
 class Slack_RTM:
     def __init__(self):
         self.colorPrint = ColorPrint.setPrint("Root")
-        imports = InitModule.moduleGet()
-        privacy = password_crypt.logIn(InitModule.requireGet(imports))
+        self.colorPrint("Test Unit",wantname)
 
-        imports = [ i for i in imports if i['name'] in ["",*wantname] ]
+        modules = InitModule.requiresCall()
+        privacy = password_crypt.logIn( InitModule.requiresGet(modules))
+        #self.colorPrint("Secret",privacy,color="WARNING")
+        modules = [ i for i in modules if i['name'] in ["",*wantname] ]
 
-        self.modules = InitModule.initGet(privacy,imports)
-        self.slack = SlackClient(privacy['_TOKEN']) #dirty methods
-        self.ignoretype = ['user_typing','reconnect_url','pref_change','presence_change','emoji_changed','desktop_notification']
+        self.modules, base = InitModule.initSet(privacy,modules)
+        self.slack = SlackClient(base.get('TOKEN'))
+        self.ignoretype = [
+            'user_typing',
+            'reconnect_url',
+            'pref_change',
+            'presence_change',
+            'emoji_changed',
+            'desktop_notification']
 
     def startRTM(self):
         if self.slack.rtm_connect():
@@ -53,5 +61,6 @@ class Slack_RTM:
         for mod in self.modules:
             mod.main(copy.deepcopy(data))
 
-slack_rtm=  Slack_RTM()
-slack_rtm.start()
+if __name__ == "__main__":
+    slack_rtm = Slack_RTM()
+    slack_rtm.start()

@@ -11,53 +11,92 @@ import RunData
 from slackclient import SlackClient
 class SLACK():
     def require():
-        return [{"name":"TOKEN","secret":True},
-                {"name":"reportchannel","default":"workstation"}]
+        return [{"name":"TOKEN","secret":True}]
     def __init__(self,privacy):
         self._slack = SlackClient(privacy['TOKEN'])
-        self.reportchannel = privacy['reportchannel']
     def api_call(self,*args,**kwargs):
         return self._slack.api_call(*args,**kwargs)
+    def tokenGet(self): # it should be private
+        return self._slack.token
+
+class BASE():
+    def require():
+        return [
+            {"name":"TOKEN","secret":True}, 
+            {"name":"postchannel","default":"workstation"},
+            {"name":"postman","default":"linnil1"}]
+    def __init__(self,privacy):
+        self._data = {
+            'TOKEN':privacy["TOKEN"],
+            'postchannel':privacy["postchannel"],
+            'postman':privacy["postman"]}
+
+    def get(self,key):
+        return self._data[key]
+
 from ColorPrint import *
 
-def importGet():
-    imports = [{
-        'class': SLACK,
-        'name' : "",
-        'type' : "common"}]
-    modules = [ c for c in os.listdir("common") if c.endswith(".py")]
-    for command in modules:
-        com = importlib.import_module(command[:-3])
-        imports.append({
-            'class': getattr(com,command[:-3]),
-            'name' : command[:-3],
+def modulesGet():
+    modules = [{
+            'class': BASE,
+            'name' : "",
+            'type' : "common"}]
+
+    imports_file = [ f for f in os.listdir("common") if f.endswith(".py")]
+    for import_file in imports_file:
+        module = importlib.import_module(import_file[:-3])
+        modules.append({
+            'class': getattr(module,import_file[:-3]),
+            'name' : import_file[:-3],
             'type' : "common"})
 
-    modules = [ c for c in os.listdir("modules") if c.endswith("_command.py")]
-    for command in modules:
-        com = importlib.import_module(command[:-3])
-        c = re.findall(r"(\w+)_command\.py",command)[0]
-        imports.append({
-            'class': getattr(com,c),
-            'name' : c,
+    imports_file = [ f for f in os.listdir("modules") if f.endswith("_command.py")]
+    for import_file in imports_file:
+        module = importlib.import_module(import_file [:-3])
+        module_name = re.findall(r"(\w+)_command\.py",import_file )[0]
+        modules.append({
+            'class': getattr(module,module_name),
+            'name' : module_name,
             'type' : "command"})
-    return imports
+    return modules
 
-def moduleGet():
-    imports = importGet()
-    for command in imports:
-        command['require'] = command['class'].require()
-    return imports
+""" require format
+{ 
+  'name': "APPID", # name should not use data
+  'secret': True, # it will not show on console when writing
+  'desp' : "xxx uuuu werwerf skdjfslkdjf", #describition of the key
+  'default' : "123" # this will return string
+  'module' : True # this will return the class in common/ 
+  'other' : True # this is for asking other's data. The name should be like _TOKEN
+}
+"""
 
-def requireGet(imports):
+def requiresCall():
+    modules = modulesGet()
+    for module in modules:
+        module['require'] = module['class'].require()
+    return modules
+
+def requiresGet(modules):
     requires = []
-    for require in imports:
-        reqs = copy.deepcopy(require['require'])
+    others = []
+    for module in modules:
+        reqs = copy.deepcopy(module['require'])
         for req in reqs:
-            if req['name'] in ['colorPrint','data']:
-                raise ValueError("require name cannot be "+req['name'])
-            req['name'] = require['name']+"_"+req['name']
-        requires.extend(reqs)
+            if not req.get('other'):
+                req['name'] = module['name']+"_"+req['name']
+                requires.append(req)
+            else:
+                others.append( req['name'] )
+
+    #check other's data is exist
+    for other in others:
+        for req in requires:
+            if req['name'] == other:
+                break
+        else:
+            raise ValueError("cannot find "+other)
+
     return requires
 
 def privacyFilter(privacy,module,commons={}):
@@ -65,34 +104,67 @@ def privacyFilter(privacy,module,commons={}):
     for req in module['require']:
         if req.get("module"):
             giveprivacy[req['name']] = commons[ req['name'] ] 
+        elif req.get("other"):
+            giveprivacy[req['name']] = privacy[ req['name'] ] 
         else:
-            giveprivacy[req['name']]=privacy[ module['name']+"_"+req['name'] ]
+            giveprivacy[req['name']] = privacy[ module['name']+"_"+req['name'] ]
     return giveprivacy
 
-def initGet(privacy,imports):
-    commons = {}
-    for module in imports:
+def dependFind(modules):
+    common_modules = {}
+    count_modules = {}
+    for module in modules:
         if module['type'] == 'common':
-            pri = privacyFilter(privacy,module)
-            pri.update({"colorPrint":setPrint(module['name'])})
-            commons[ module['name'] ] = module['class'](pri)
+            common_modules[ module['name'] ] = module
+            count_modules [ module['name'] ] = 0
+    for key,module in common_modules.items():
+        for require in module['require']:
+            if require.get("module"):
+                count_modules[ require['name'] ] += 1
 
-    slack = commons[''] # root
+    topo_modules = []
+    for c in range(len(common_modules)):
+        for name,num in count_modules.items():
+            if num == 0:
+                topo_modules.append( common_modules[name] )
+                count_modules[name] = -1
+        for name,num in count_modules.items():
+            if num == -1:
+                for req in common_modules[name]['require']:
+                    if require.get("module"):
+                        count_modules[ req['name'] ] -= 1
+
+        count_modules = \
+                { key:value for key,value in count_modules.items() if value>=0 }
+
+    if count_modules:
+        raise ValueError("It may have circular dependency")
+    return list(reversed(topo_modules))
+
+def initSet(privacy,modules):
+    modules = dependFind(modules) + \
+            [ module for module in modules if module['type'] == 'command' ]
+
+    #always add data
+    slack = SLACK({"TOKEN":privacy['_TOKEN']})
     database = RunData.RunDataBase()
 
-    modules = []
-    for module in imports:
-        if module['type'] != 'common':
-            pri = privacyFilter(privacy,module,commons)
-            # add rundata module in every module
-            pri.update({"data":RunData.RunData(database,module['name'])}) 
-            # add colorPrint
-            pri.update({"colorPrint":setPrint(module['name'])})
-            modules.append( module['class'](slack,pri) )
-    return modules 
+    commons = {}
+    newmodules = []
+    for module in modules:
+        pri = privacyFilter(privacy,module,commons)
+        pri.update({"data":RunData.RunData(database,module['name'])}) 
+        pri.update({"colorPrint":setPrint(module['name'])})
 
-def ModuleInit():
-    imports = moduleGet()
-    privacy = password_crypt.logIn(requireGet(imports))
-    modules = initGet(privacy,imports)
-    return modules ,privacy['_TOKEN']
+        if module['type'] == 'command':
+            newmodules.append( module['class'](slack,pri) )
+        elif module['type'] == 'common':
+            commons[ module['name'] ] = module['class'](pri)
+
+    return newmodules, commons[''] 
+
+def modulesInit():
+    modules = requiresCall()
+    privacy = password_crypt.logIn( requiresGet(modules))
+    modules, base = initSet(privacy,modules)
+    return modules, base

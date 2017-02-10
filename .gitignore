@@ -8,3 +8,4 @@ test*
 word_data
 node_modules/
 slackLogIn
+data/tmp/

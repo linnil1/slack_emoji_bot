@@ -48,6 +48,10 @@ class FOOD:
             if c['name'].lower() == custom['food_channelname']:
                 self.channel_id = c['id']
                 break;
+        if not self.channel_id:
+            self.colorPrint("No midnight channel","Restart when midnight channel can use",color="FAIL")
+            self.nochannel = True
+            return
 
         jieba.set_dictionary(self.food_dic)
         jieba.initialize()
@@ -58,10 +62,6 @@ class FOOD:
         for word in self.rundata.get('FOOD_delword'):
             jieba.del_word(word)
 
-        if not self.channel_id:
-            self.colorPrint("No midnight channel","Restart when midnight channel can use",color="FAIL")
-            self.nochannel = True
-            return
 
         self.init()
 

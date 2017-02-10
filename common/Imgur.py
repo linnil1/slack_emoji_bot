@@ -27,3 +27,5 @@ class Imgur:
         except:
             return url
 
+    def pathUpload(self,path):
+        return self.__client.upload_from_path(path)['link']

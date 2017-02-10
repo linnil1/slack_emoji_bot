@@ -70,5 +70,4 @@ def logIn(needprivacy):
         open(filepath,"w").write(json.dumps(new_privacy))
 
     colorPrint("Password Correct")
-    #colorPrint("Secrect",{**new_privacy,**new_hash})
     return {**new_privacy,**new_hash}

@@ -6,7 +6,7 @@ from threading import Timer
 class FBTOSLACK:
     def require():
         return [{"name":"fb_clubid"},
-                {"name":"slack_username"},
+                {"name":"_postman","other":True},
                 {"name":"fb_token","default":""},
                 {"name":"syncfb_interval","default":60},
                 {"name":"sync_auto","default":'True'},
@@ -26,7 +26,7 @@ class FBTOSLACK:
         self.channelname = custom['syncfb_channel']
         
         # find token user 
-        self.username = custom['slack_username']
+        self.username = custom['_postman']
         self.payload_user = {
             'channel': self.userFind(),
             'username': "FB syncer",

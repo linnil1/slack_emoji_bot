@@ -159,7 +159,12 @@ pip3 install -r requirement.txt
 cd common/
 npm install google-translate-api
 cd ..
+mkdir data/word_data
+mkdir data/tmp
+
 ```
+
+* Warning : Pillow should use linnil1/Pillow
 
 And, Run it
 `python3 slack_server.py`
@@ -189,6 +194,7 @@ privacy object :
   'desp' : "xxx uuuu werwerf skdjfslkdjf", #describition of the key
   'default' : "123" # this will return string
   'module' : True # this will return the class in common/ and module name is name
+  'other' : True # this is for asking another's data and name should be like Token
 }
 ```
 
