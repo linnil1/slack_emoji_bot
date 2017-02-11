@@ -10,3 +10,4 @@ cowpy
 facebook-sdk
 slpy
 PILLOW
+selenium

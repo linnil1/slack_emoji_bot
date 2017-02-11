@@ -147,6 +147,12 @@ There are some command :
 	* `{{all}}` for the all text of what trigger
 	* `{{1}}` for first match
 
+* WEATHER module
+
+	Show NTU weather by Image
+
+	* weather
+
 The usage is also write inside the command
 
 Usually, you can type xxhelp for help
@@ -158,6 +164,7 @@ First, Initize it.
 pip3 install -r requirement.txt
 cd common/
 npm install google-translate-api
+npm install phantomjs
 cd ..
 mkdir data/word_data
 mkdir data/tmp
@@ -169,7 +176,7 @@ mkdir data/tmp
 And, Run it
 `python3 slack_server.py`
 
-Please send message "old 巷算課牛食篆轉我好中不一二三四五六七八九十票行廢同車亂譯"
+Please send message "old 巷算課牛食篆轉我好中不一二三四五六七八九十票行廢同車亂譯氣"
 when you first run it
 
 # create new module

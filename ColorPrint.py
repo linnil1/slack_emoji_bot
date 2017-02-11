@@ -1,4 +1,5 @@
 import pprint
+import time
 class Colors:
     HEADER = '\033[95m'
     OKBLUE = '\033[94m'
@@ -10,6 +11,8 @@ class Colors:
 
 def setPrint(title):
     def cPrint(status="",data="",color="OKGREEN"):
+        if color == Colors.ERR:
+            print(Colors.OKBLUE + "[{}]".format(time.strftime("%s")) + Colors.ENDC)
         print( Colors.HEADER +"[{}]".format(title )+Colors.ENDC+
         getattr(Colors,color)+"[{}]".format(status)+Colors.ENDC,end=' ')
         if type(data) is str:
