@@ -17,7 +17,7 @@ import password_crypt
 import copy
 
 #wantname = ["REGEXBOT","CustomResponse"]
-wantname = ["WEATHER","Imgur"]
+wantname = ["COURSE"]
 
 class Slack_RTM:
     def __init__(self):
