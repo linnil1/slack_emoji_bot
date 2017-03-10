@@ -176,7 +176,7 @@ mkdir data/tmp
 And, Run it
 `python3 slack_server.py`
 
-Please send message "old 巷算課牛食篆轉我好中不一二三四五六七八九十票行廢同車亂譯氣"
+Please send message "old 巷算課牛食篆轉我好中不一二三四五六七八九十票行廢同車亂譯氣址"
 when you first run it
 
 # create new module

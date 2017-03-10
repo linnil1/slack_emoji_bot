@@ -175,6 +175,7 @@ class FBTOSLACK:
             self.stop = self.stop-1 
             self.colorPrint("Cannot connect to FB",color="FAIL")
             if self.stop < 0:
+                self.colorPrint("STOP FB connection",color="FAIL")
                 self.slack.api_call("chat.postMessage",**self.payload_user,text="Token Expired\nUse token=xxx to retoken")
             else:
                 self.timerSet(self.retry)

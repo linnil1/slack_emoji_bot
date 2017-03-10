@@ -6,7 +6,6 @@ import copy
 import sys
 import time
 
-
 import os
 import sys
 import re
@@ -17,7 +16,7 @@ import password_crypt
 import copy
 
 #wantname = ["REGEXBOT","CustomResponse"]
-wantname = ["COURSE"]
+wantname = ["IPLIST"]
 
 class Slack_RTM:
     def __init__(self):
