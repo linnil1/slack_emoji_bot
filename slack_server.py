@@ -38,6 +38,7 @@ class Slack_RTM:
                     self.commandSelect(data[0])
         else:
             self.colorPrint("Connect Error!","Please Reconnect",color="ERR")
+            time.sleep(1)
 
     def start(self):
         while True:

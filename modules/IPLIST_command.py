@@ -22,7 +22,10 @@ class IPLIST:
                 "channel": datadict['channel']}
             data = requests.get("https://home.ntuosc.org/go/list/").json()
             self.colorPrint("list", data)
-            s = "\n".join(
-                ["`{}` {}".format( li['IP']['Data'], li['Name']['Data'] ) 
-                    for li in data['Device']])
+            try:
+                s = "\n".join(
+                    ["`{}` {}".format( li['IP']['Data'], li['Name']['Data'] ) 
+                        for li in data['Device']])
+            except:
+                s = "None"
             self.slack.api_call("chat.postMessage",**payload,text=s)

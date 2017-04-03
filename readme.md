@@ -172,6 +172,7 @@ mkdir data/tmp
 ```
 
 * Warning : Pillow should use linnil1/Pillow
+` cp Pillow/PIL/GifImagePlugin.py env/lib/python3.5/site-packages/PIL/GifImagePlugin.py `
 
 And, Run it
 `python3 slack_server.py`

@@ -7,7 +7,7 @@ import requests
 class FBTOSLACK:
     def require():
         return [{"name":"fb_clubid"},
-                {"name":"_postman","other":True},
+                {"name":"username"},
                 {"name":"fb_token","default":""},
                 {"name":"syncfb_interval","default":60},
                 {"name":"sync_auto","default":'True'},
@@ -20,14 +20,13 @@ class FBTOSLACK:
         self.interval = int(custom['syncfb_interval']) #unit: second
         self.hashtag = custom['sync_hashtag']
         self.auto = custom['sync_auto'] == "True"
-        self.diff = 5  # the difference between fb and my time
         self.retry = 5 # retry for error response
 
         # find broadcast channel
         self.channelname = custom['syncfb_channel']
         
         # find token user 
-        self.username = custom['_postman']
+        self.username = custom['username']
         self.payload_user = {
             'channel': self.userFind(),
             'username': "FB syncer",
@@ -39,11 +38,12 @@ class FBTOSLACK:
         if not self.rundata.get("timelog"):
             self.rundata.set("timelog",int(datetime.now().strftime("%s")) )
 
-        self.init(custom['fb_token'])
+        self.init(self.rundata.get("fb_token") or custom['fb_token'])
 
     def init(self,token):
+        self.rundata.set("fb_token",token)
         self.graph = facebook.GraphAPI(access_token=token, version="2.7")
-        self.stop = 5 
+        self.rundata.set("stop",5)
         self.messagePost()
 
     def timerSet(self,interval):
@@ -161,30 +161,41 @@ class FBTOSLACK:
         self.rundata.append("fbid",feed['id'])
         return {**main,'attachments':attachs}
 
+    def callRetoken(self):
+        try:
+            self.slack.api_call("chat.postMessage",
+                **self.payload_user,
+                text="Token Expired\nUse token=xxx to retoken")
+            self.rundata.set("stop", -1)
+        except:
+            pass
+
     def feedsGet(self):
         try:
             feeds = self.graph.get_object(
                 id    =self.club + "/feed",
                 fields="message,attachments,permalink_url,from,story"
                        ",description,type,created_time,comments",
-                since =self.rundata.get("timelog")-self.diff)
+                since =self.rundata.get("timelog")-self.interval)
             self.rundata.set("timelog",int(datetime.now().strftime("%s")))
+            self.rundata.set("stop",5)
             self.timerSet(self.interval)
-            self.stop = 5
         except:
-            self.stop = self.stop-1 
+            stop = self.rundata.get("stop")
             self.colorPrint("Cannot connect to FB",color="FAIL")
-            if self.stop < 0:
-                self.colorPrint("STOP FB connection",color="FAIL")
-                self.slack.api_call("chat.postMessage",**self.payload_user,text="Token Expired\nUse token=xxx to retoken")
-            else:
+            if stop > 0:
+                self.rundata.set("stop", stop-1)
                 self.timerSet(self.retry)
+            else:
+                self.colorPrint("Stop connect to FB",color="FAIL")
+                self.callRetoken()
             return 
 
         feeds = feeds['data'] # ignore paging
         return feeds
 
     def messagePost(self):
+        self.colorPrint("message")
         feeds = self.feedsGet()
         if not feeds:
             return 
@@ -194,6 +205,12 @@ class FBTOSLACK:
             self.slack.api_call("chat.postMessage",channel=self.channelname,**message)
 
     def main(self,datadict):
+        # call user to retoken
+        if self.rundata.get("stop") == 0:
+            self.messagePost()
+            if self.rundata.get("stop") == 0:
+                self.callRetoken()
+
         # get token
         if datadict['type'] == 'message' and datadict['channel'] == self.payload_user['channel'] and datadict['text'].startswith("token="):
             self.init(datadict['text'][6:])

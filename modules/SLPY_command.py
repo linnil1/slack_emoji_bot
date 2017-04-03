@@ -32,7 +32,7 @@ class SLPY:
         if not datadict['type'] == 'message' or 'subtype' in datadict:
             return 
 
-        if not datadict['text'].startswith("sl") or \
+        if not (datadict['text'].startswith("sl ") or datadict['text'] == "sl") or \
                datadict['channel'][0] == 'D' :
             return 
 

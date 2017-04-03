@@ -20,7 +20,7 @@ class RunDataBase:
         open(self.path,"w").write(json.dumps(self.data))
 
     def get(self,key):
-        if self.data.get(key):
+        if self.data.get(key) != None:
             return self.data.get(key)
         else:
             return []

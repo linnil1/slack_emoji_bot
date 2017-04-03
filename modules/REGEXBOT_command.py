@@ -18,11 +18,19 @@ class REGEXBOT:
         self.no_response = []
         self.messageCheck() # this also call timeSet
         self.member = {}
+        self.sync = True
         for mem in self.slack.api_call("users.list")['members']:
             self.member[ mem['id'] ] = mem['name']
 
     def messageCheck(self):
-        data = self.customResponse.list()['responses']
+        self.colorPrint("message")
+        try:
+            data = self.customResponse.list()['responses']
+        except:
+            self.sync = False
+            self.colorPrint("Regex No Sync",color="FAIL")
+            return 
+
         if data != self.ori_response:
             self.ori_response = data
             self.response = []
@@ -68,6 +76,9 @@ class REGEXBOT:
         return None,""
 
     def main(self,datadict):
+        if self.sync == False:
+            self.sync = True
+            self.messageCheck()
         if not datadict['type'] == 'message' or 'subtype' in datadict:
             return 
 
