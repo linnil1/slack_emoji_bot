@@ -1,9 +1,9 @@
 
 class TRANSLATE:
     def require():
-        return [{"name":"Translate","module":True}]
+        return [{"name": "Translate", "module": True}]
 
-    def __init__(self,slack,custom):
+    def __init__(self, slack, custom):
         self.slack = slack
         self.colorPrint = custom['colorPrint']
         self.translate = custom['Translate'].translate
@@ -12,7 +12,7 @@ class TRANSLATE:
             "icon_emoji": ":_e8_ad_af:"
         }
 
-    def parse(self,text):
+    def parse(self, text):
         arr = text.split(' ')
         opt = {}
         text = []
@@ -24,42 +24,39 @@ class TRANSLATE:
             else:
                 text.append(t)
 
-        return (' '.join(text),opt)
+        return (' '.join(text), opt)
 
-    def format(self,text):
-        #text = text.split('\n')
-        #if len(text) != 1:
+    def format(self, text):
+        # text = text.split('\n')
+        # if len(text) != 1:
         #    text = text[0] + "\nLang: "+ text[1]
-        #return text
+        # return text
         return text[:text.find('\n')]
 
-    def main(self,datadict):
+    def main(self, datadict):
         if not datadict['type'] == 'message' or 'subtype' in datadict:
-            return 
+            return
 
         if datadict['text'].startswith("translate "):
-            text,opt = self.parse(datadict['text'])
-            self.colorPrint("text",text)
-            self.colorPrint("option",opt)
+            text, opt = self.parse(datadict['text'])
+            self.colorPrint("text", text)
+            self.colorPrint("option", opt)
             try:
-                trans = self.format(self.translate(text,opt))
+                trans = self.format(self.translate(text, opt))
             except ValueError as err:
                 trans = err.__str__()
 
             self.slack.api_call("chat.postMessage",
-                    text = trans,
-                    channel = datadict['channel'],
-                    thread_ts=datadict.get("thread_ts")or'',
-                    **self.payload )
+                                text=trans,
+                                channel=datadict['channel'],
+                                thread_ts=datadict.get("thread_ts")or'',
+                                **self.payload)
         if datadict['text'] == "translatehelp":
             helptext = """ ```
 translate text
 translate text --from=en --to=zh-TW ``` """
             self.slack.api_call("chat.postMessage",
-                    text = helptext,
-                    thread_ts=datadict.get("thread_ts"),
-                    channel = datadict['channel'],
-                    **self.payload )
-
-
-        
+                                text=helptext,
+                                thread_ts=datadict.get("thread_ts"),
+                                channel=datadict['channel'],
+                                **self.payload)
