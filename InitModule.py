@@ -59,13 +59,26 @@ def modulesGet():
 
     imports_file = [f for f in os.listdir(
         "modules") if f.endswith("_command.py")]
+
+    command_modules = []
     for import_file in imports_file:
         module = importlib.import_module(import_file[:-3])
         module_name = re.findall(r"(\w+)_command\.py", import_file)[0]
-        modules.append({
+        command_modules.append({
             'class': getattr(module, module_name),
             'name': module_name,
             'type': "command"})
+
+    # number of modules
+    mod_number = password_crypt.moduleNumber([
+        mod['name'] for mod in command_modules])
+    for mod in command_modules:
+        for num in range(0, mod_number[mod['name']]):
+            copymods = copy.deepcopy(mod)
+            if num:
+                copymods['name'] += str(num)
+            modules.append(copymods)
+
     return modules
 
 
@@ -82,17 +95,11 @@ def modulesGet():
 """
 
 
-def requiresCall():
-    modules = modulesGet()
-    for module in modules:
-        module['require'] = module['class'].require()
-    return modules
-
-
 def requiresGet(modules):
     requires = []
     others = []
     for module in modules:
+        module['require'] = module['class'].require()
         reqs = copy.deepcopy(module['require'])
         for req in reqs:
             if not req.get('other'):
@@ -120,8 +127,8 @@ def privacyFilter(privacy, module, commons={}):
         elif req.get("other"):
             giveprivacy[req['name']] = privacy[req['name']]
         else:
-            giveprivacy[req['name']
-                        ] = privacy[module['name'] + "_" + req['name']]
+            giveprivacy[req['name']] = \
+                privacy[module['name'] + "_" + req['name']]
     return giveprivacy
 
 
@@ -181,7 +188,7 @@ def initSet(privacy, modules):
 
 
 def modulesInit():
-    modules = requiresCall()
+    modules = modulesGet()
     privacy = password_crypt.logIn(requiresGet(modules))
     modules, base = initSet(privacy, modules)
     return modules, base

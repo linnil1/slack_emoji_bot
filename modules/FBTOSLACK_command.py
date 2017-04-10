@@ -128,7 +128,8 @@ class FBTOSLACK:
         # in message in post data
         if feed.get('message'):
             # sync when hashtag not found
-            if self.auto == True and feed['message'].find(self.hashtag) == -1:
+            if self.auto == True and feed['message'].find(self.hashtag) == -1 and \
+                    feed['from']['id'] == self.club:
                 who = feed['from']
             # sync when hashtag found
             if self.auto == False and feed['message'].find(self.hashtag) >= 0:
@@ -154,7 +155,13 @@ class FBTOSLACK:
         if feed.get('attachments'):
             attachs = self.attachFind(feed['attachments']['data'])
             attachs = list(filter(None, attachs))
+        maintext = feed.get('message',"")
+        if maintext:
+            for att in attachs:
+                if att['text'].startswith(maintext):
+                    att['text'] = att['text'][:len(maintext)]
 
+        # Foot
         attachs.append({'footer': "{}\n<{}|FB_link>".format(
             feed['created_time'], feed['permalink_url']),
             'text': "_<https://www.facebook.com/{}|{}> "
@@ -194,7 +201,6 @@ class FBTOSLACK:
                 self.colorPrint("Stop connect to FB", color="FAIL")
                 self.callRetoken()
             return
-
         feeds = feeds['data']  # ignore paging
         return feeds
 

@@ -20,7 +20,7 @@ class Slack_RTM:
         self.colorPrint = ColorPrint.setPrint("Root")
         self.colorPrint("Test Unit", wantname)
 
-        modules = InitModule.requiresCall()
+        modules = InitModule.modulesGet()
         privacy = password_crypt.logIn(InitModule.requiresGet(modules))
         # self.colorPrint("Secret",privacy,color="WARNING")
         modules = [i for i in modules if i['name'] in ["", *wantname]]

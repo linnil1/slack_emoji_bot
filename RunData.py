@@ -9,17 +9,20 @@ class RunDataBase:
         if os.path.exists(self.path):
             self.data = json.loads(open(self.path).read())
         else:
-            open(self.path, "w").write(json.dumps({}))
+            json.dump({}, open(self.path, "w"),
+                      sort_keys=True, indent=4)
 
     def append(self, key, data):
         if not self.data.get(key):
             self.data[key] = []
         self.data[key].append(data)
-        open(self.path, "w").write(json.dumps(self.data))
+        json.dump(self.data, open(self.path, "w"),
+                   sort_keys=True, indent=4)
 
     def set(self, key, data):
         self.data[key] = data
-        open(self.path, "w").write(json.dumps(self.data))
+        json.dump(self.data, open(self.path, "w"),
+                   sort_keys=True, indent=4)
 
     def get(self, key):
         if self.data.get(key) is not None:
